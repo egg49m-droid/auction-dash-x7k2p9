@@ -1,0 +1,11 @@
+{
+  "spreadsheet_id": "YOUR_SPREADSHEET_ID_HERE",
+  "sheet_name": "出品管理",
+  "account_sheet_name": "アカウント一覧",
+  "oauth_client_path": "config/oauth_client.json",
+  "oauth_token_path": "config/token.json",
+  "discover_since": "2026-07-01",
+  "request_concurrency": 5,
+  "request_timeout_seconds": 15,
+  "user_agent": "Mozilla/5.0 (compatible; yahoo-auction-tracker/1.0; personal-use-script)"
+}

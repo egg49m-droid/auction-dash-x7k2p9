@@ -1,0 +1,16 @@
+venv/
+bin/
+__pycache__/
+*.pyc
+data/*.db
+data/*.log
+config/oauth_client.json
+config/token.json
+config/credentials.json
+input/new_urls.txt
+input/processed/
+output/dashboard.html
+launchd/com.piroegg.auctiontracker.ngrok.plist
+.claude/
+config/settings.json
+config/accounts.json

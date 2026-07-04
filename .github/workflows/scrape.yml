@@ -1,0 +1,64 @@
+name: Scrape and publish dashboard
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 12:00 JST
+    - cron: '0 10 * * *'  # 19:00 JST
+    - cron: '30 13 * * *' # 22:30 JST
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore DB cache
+        uses: actions/cache@v4
+        with:
+          path: data/auctions.db
+          key: auction-db-${{ github.run_id }}
+          restore-keys: |
+            auction-db-
+
+      - name: Write config from secrets
+        env:
+          ACCOUNTS_JSON: ${{ secrets.ACCOUNTS_JSON }}
+          OAUTH_CLIENT_JSON: ${{ secrets.GOOGLE_OAUTH_CLIENT_JSON }}
+          TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: python3 .github/scripts/write_config.py
+
+      - name: Run discover + recheck + sync + dashboard
+        run: python3 main.py all
+
+      - name: Build password-gated public page
+        env:
+          PAGES_PASSWORD: ${{ secrets.PAGES_PASSWORD }}
+        run: python3 .github/scripts/build_pages.py
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

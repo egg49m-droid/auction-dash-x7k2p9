@@ -1,0 +1,77 @@
+from pathlib import Path
+
+import gspread
+from gspread.exceptions import WorksheetNotFound
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+from src.scraper import extract_staff_mark
+
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+]
+
+HEADER = [
+    "出品日", "アカウント名", "記号", "オークションID", "URL", "商品名",
+    "開始価格", "現在価格", "入札件数", "入札有無", "終了日時",
+    "ステータス", "落札金額", "最終確認日時", "備考", "登録元",
+]
+
+
+def _row_to_values(row) -> list:
+    return [
+        row["listed_date"], row["account_name"], extract_staff_mark(row["title"]),
+        row["auction_id"], row["url"], row["title"],
+        row["start_price"], row["current_price"], row["bid_count"], row["has_bid"],
+        row["end_datetime"], row["status"], row["final_price"], row["last_checked_at"], row["note"],
+        "自分の出品" if row["source"] == "manual" else "アカウント全体",
+    ]
+
+
+def _get_credentials(settings: dict, project_root: Path) -> Credentials:
+    client_path = project_root / settings["oauth_client_path"]
+    token_path = project_root / settings["oauth_token_path"]
+
+    creds = None
+    if token_path.exists():
+        creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
+
+    if creds and creds.valid:
+        return creds
+
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+        token_path.write_text(creds.to_json(), encoding="utf-8")
+        return creds
+
+    if not client_path.exists():
+        raise FileNotFoundError(
+            f"OAuthクライアントのJSONが見つかりません: {client_path}\n"
+            "Google CloudでOAuthクライアントID（デスクトップアプリ）を作成し、JSONをこのパスに配置してください。"
+        )
+
+    flow = InstalledAppFlow.from_client_secrets_file(str(client_path), SCOPES)
+    creds = flow.run_local_server(port=0)
+    token_path.write_text(creds.to_json(), encoding="utf-8")
+    return creds
+
+
+def _get_or_create_worksheet(sh, title: str, cols: int):
+    try:
+        return sh.worksheet(title)
+    except WorksheetNotFound:
+        return sh.add_worksheet(title=title, rows=1000, cols=cols)
+
+
+def sync(rows, settings: dict, project_root: Path):
+    creds = _get_credentials(settings, project_root)
+    gc = gspread.authorize(creds)
+    sh = gc.open_by_key(settings["spreadsheet_id"])
+    ws = _get_or_create_worksheet(sh, settings["sheet_name"], cols=len(HEADER))
+
+    values = [HEADER] + [_row_to_values(r) for r in rows]
+    ws.clear()
+    ws.update(values, value_input_option="USER_ENTERED")
+    print(f"Google Sheetsへ{len(rows)}件を反映しました。")
