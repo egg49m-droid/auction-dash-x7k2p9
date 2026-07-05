@@ -180,16 +180,27 @@ const markSel = document.getElementById('fMark');
 
 function accBadgeClass(a){{ return ACC_CLASS[a] || 'acc-x'; }}
 
+const TRADE_TRACKED_ACCOUNTS = ['surpass']; // ログインで取引ナビ全件を把握できているアカウント
+function hasTradeCoverage(r){{ return TRADE_TRACKED_ACCOUNTS.includes(r.account); }}
+
 function isWon(r){{
-  return r.status!=='出品中' && (!!r.tradeProgress || r.bids>0);
+  if(r.status==='出品中') return false;
+  if(hasTradeCoverage(r)) return !!r.tradeProgress; // 取引ナビに記録がなければ入札があっても未落札扱い
+  return !!r.tradeProgress || r.bids>0;
+}}
+
+function effectiveBids(r){{
+  // 取引ナビで落札者なしと確認できたのに入札件数が残っている(いたずら入札等で取り消された)行は0扱いにする
+  if(r.status!=='出品中' && hasTradeCoverage(r) && !r.tradeProgress) return 0;
+  return r.bids;
 }}
 
 function renderCards(rows, monthFilter){{
   const monthScoped = monthFilter ? DATA.filter(d=>d.month===monthFilter) : DATA;
   const total = rows.length;
-  const withBid = rows.filter(r=>r.bids>0).length;
+  const withBid = rows.filter(r=>effectiveBids(r)>0).length;
   const bidRate = total? ((withBid/total)*100).toFixed(1):"0.0";
-  const totalBids = rows.reduce((a,r)=>a+r.bids,0);
+  const totalBids = rows.reduce((a,r)=>a+effectiveBids(r),0);
   const avgBids = total? (totalBids/total).toFixed(2):"0.00";
   const ended = rows.filter(r=>r.status==="終了");
   const won = rows.filter(isWon);
@@ -245,12 +256,14 @@ function tradeClass(r){{
 function combinedStatusLabel(r){{
   if(r.status==='出品中') return '出品中';
   if(r.tradeProgress) return tradeLabel(r);
+  if(hasTradeCoverage(r)) return '未落札'; // 取引ナビに記録なし＝入札があっても実際は未落札
   if(r.bids<=0) return '未落札';
   return '終了';
 }}
 function combinedStatusClass(r){{
   if(r.status==='出品中') return 'b-active';
   if(r.tradeProgress) return tradeClass(r);
+  if(hasTradeCoverage(r)) return 'b-nashi';
   if(r.bids<=0) return 'b-nashi';
   return 'b-end';
 }}
@@ -259,8 +272,8 @@ function matchesStateFilter(r, val){{
   if(!val) return true;
   const ended = r.status!=='出品中';
   if(val==='ACTIVE') return r.status==='出品中';
-  if(val==='NO_BID') return ended && !r.tradeProgress && r.bids<=0;
-  if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress;
+  if(val==='NO_BID') return ended && !r.tradeProgress && (hasTradeCoverage(r) || r.bids<=0);
+  if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress && !hasTradeCoverage(r);
   if(val==='ERROR') return ended && r.tradeProgress && !TRADE_LABELS[r.tradeProgress];
   return ended && r.tradeProgress===val;
 }}
@@ -274,15 +287,15 @@ function renderTable(){{
     if(dv && r.day!==dv) return false;
     if(av && r.account!==av) return false;
     if(mv && r.mark!==mv) return false;
-    if(bv==="あり" && r.bids<=0) return false;
-    if(bv==="なし" && r.bids>0) return false;
+    if(bv==="あり" && effectiveBids(r)<=0) return false;
+    if(bv==="なし" && effectiveBids(r)>0) return false;
     if(!matchesStateFilter(r, stv)) return false;
     if(q && !(r.name.includes(q)||r.id.includes(q))) return false;
     return true;
   }});
   renderCards(rows, mo);
   document.getElementById('tbody').innerHTML = rows.map(r=>{{
-    const rowClass = r.bids<=0 ? 'row-nobid' : (r.day===LATEST_DAY ? 'row-new' : '');
+    const rowClass = effectiveBids(r)<=0 ? 'row-nobid' : (r.day===LATEST_DAY ? 'row-new' : '');
     return `
     <tr class="${{rowClass}}">
       <td>${{r.day||'-'}}</td>
@@ -291,7 +304,7 @@ function renderTable(){{
       <td class="idcell"><a href="https://auctions.yahoo.co.jp/jp/auction/${{r.id}}" target="_blank">${{r.id}}</a></td>
       <td class="name">${{r.name}}</td>
       <td>${{r.price!==null? '¥'+r.price.toLocaleString() : '-'}}</td>
-      <td><span class="badge ${{r.bids>0?'b-ari':'b-nashi'}}">${{r.bids>0?'あり('+r.bids+')':'なし'}}</span></td>
+      <td><span class="badge ${{effectiveBids(r)>0?'b-ari':'b-nashi'}}" title="${{r.bids!==effectiveBids(r)? '実際の入札は'+r.bids+'件ですが、取引ナビ上で取り消されたと判断しています':''}}">${{effectiveBids(r)>0?'あり('+effectiveBids(r)+')':'なし'}}</span></td>
       <td>${{r.end||'-'}}</td>
       <td><span class="badge ${{combinedStatusClass(r)}}">${{combinedStatusLabel(r)}}</span></td>
       <td>${{r.final!==null? '¥'+r.final.toLocaleString() : '-'}}</td>

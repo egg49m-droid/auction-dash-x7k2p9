@@ -28,6 +28,12 @@ TRADE_LABELS = {
 }
 TRADE_ERROR_LABEL = "取引状況を確認してください(要確認)"
 
+TRADE_TRACKED_ACCOUNTS = {"surpass"}  # ログインで取引ナビ全件を把握できているアカウント
+
+
+def _has_trade_coverage(row) -> bool:
+    return row["account_name"] in TRADE_TRACKED_ACCOUNTS
+
 
 def _combined_status(row) -> str:
     if row["status"] == "出品中":
@@ -35,16 +41,26 @@ def _combined_status(row) -> str:
     trade_progress = row["trade_progress"]
     if trade_progress:
         return TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
+    if _has_trade_coverage(row):
+        return "未落札"  # 取引ナビに記録がない＝入札件数が残っていても実際は未落札
     if not (row["bid_count"] or 0) > 0:
         return "未落札"
     return "終了"
 
 
+def _effective_bid_count(row):
+    if row["status"] != "出品中" and _has_trade_coverage(row) and not row["trade_progress"]:
+        return 0
+    return row["bid_count"]
+
+
 def _row_to_values(row) -> list:
+    bid_count = _effective_bid_count(row)
+    has_bid = "あり" if (bid_count or 0) > 0 else "なし"
     return [
         row["listed_date"], row["account_name"], extract_staff_mark(row["title"]),
         row["auction_id"], row["url"], row["title"],
-        row["current_price"], row["bid_count"], row["has_bid"],
+        row["current_price"], bid_count, has_bid,
         row["end_datetime"], _combined_status(row), row["final_price"],
         row["recipient_name"], row["recipient_address"], row["shipping_method"], row["tracking_number"],
         row["note"],
