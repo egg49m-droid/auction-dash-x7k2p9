@@ -270,5 +270,6 @@ def wrap_with_password_gate(page_html: str, password: str) -> str:
 
 
 def render(rows, output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(render_html(rows), encoding="utf-8")
     print(f"ダッシュボードを生成しました: {output_path}")
