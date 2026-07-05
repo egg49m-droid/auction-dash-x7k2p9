@@ -24,11 +24,16 @@ CREATE TABLE IF NOT EXISTS listings (
     trade_progress  TEXT,
     trade_message   TEXT,
     buyer_id        TEXT,
-    contact_url     TEXT
+    contact_url     TEXT,
+    recipient_name    TEXT,
+    recipient_address TEXT,
+    shipping_method   TEXT,
+    tracking_number   TEXT
 );
 """
 
 TRADE_COLUMNS = ["trade_progress", "trade_message", "buyer_id", "contact_url"]
+SHIPPING_COLUMNS = ["recipient_name", "recipient_address", "shipping_method", "tracking_number"]
 
 
 def connect():
@@ -39,10 +44,29 @@ def connect():
     existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(listings)")}
     if "source" not in existing_columns:
         conn.execute("ALTER TABLE listings ADD COLUMN source TEXT DEFAULT 'manual'")
-    for col in TRADE_COLUMNS:
+    for col in TRADE_COLUMNS + SHIPPING_COLUMNS:
         if col not in existing_columns:
             conn.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT")
     return conn
+
+
+def update_shipping_info(conn, auction_id: str, info: dict):
+    conn.execute(
+        "UPDATE listings SET recipient_name=?, recipient_address=?, shipping_method=?, tracking_number=? WHERE auction_id=?",
+        (info.get("recipient_name"), info.get("recipient_address"), info.get("shipping_method"),
+         info.get("tracking_number"), auction_id),
+    )
+
+
+def get_rows_needing_shipping_info(conn):
+    """発送完了/要確認ステータスで、まだお届け先情報が未取得の行。"""
+    return conn.execute(
+        """SELECT * FROM listings
+           WHERE contact_url IS NOT NULL
+             AND tracking_number IS NULL
+             AND (trade_progress = 'SHIPPING' OR (trade_progress IS NOT NULL AND trade_progress NOT IN
+                 ('ADDRESS_INPUTING', 'PREPARATION_FOR_SHIPMENT', 'SHIPPING', 'COMPLETE')))"""
+    ).fetchall()
 
 
 def upsert_trade_status(conn, row: dict):

@@ -16,7 +16,8 @@ SCOPES = [
 HEADER = [
     "出品日", "アカウント名", "記号", "オークションID", "URL", "商品名",
     "開始価格", "現在価格", "入札件数", "入札有無", "終了日時",
-    "ステータス", "落札金額", "取引状況", "最終確認日時", "備考",
+    "ステータス", "落札金額", "取引状況", "お届け先氏名", "お届け先住所", "配送方法", "追跡番号",
+    "最終確認日時", "備考",
 ]
 
 TRADE_LABELS = {
@@ -36,6 +37,7 @@ def _row_to_values(row) -> list:
         row["auction_id"], row["url"], row["title"],
         row["start_price"], row["current_price"], row["bid_count"], row["has_bid"],
         row["end_datetime"], row["status"], row["final_price"], trade_label,
+        row["recipient_name"], row["recipient_address"], row["shipping_method"], row["tracking_number"],
         row["last_checked_at"], row["note"],
     ]
 

@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timezone, timedelta
 
 import httpx
+from bs4 import BeautifulSoup
 
 NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', re.S
@@ -71,7 +72,6 @@ async def fetch_one(client: httpx.AsyncClient, url: str, semaphore: asyncio.Sema
                     raise
             else:
                 parsed = parse_auction_html(resp.text)
-            parsed["url"] = url
             parsed["url"] = url
             parsed["error"] = None
             return parsed
@@ -244,3 +244,48 @@ async def fetch_won_items(cookies_path: str, settings: dict, since) -> list[dict
 async def fetch_unsold_items(cookies_path: str, settings: dict, since) -> list[dict]:
     """Fetches the logged-in seller's closed & unsold (no winner) items."""
     return await _fetch_closed_items(cookies_path, settings, since, sold=False, item_mapper=_unsold_item_to_row)
+
+
+def parse_contact_page(html: str) -> dict:
+    """取引ナビ(お届け情報)ページから、お届け先氏名・住所・配送方法・追跡番号を抽出する。"""
+    soup = BeautifulSoup(html, "html.parser")
+    result = {"recipient_name": None, "recipient_address": None, "shipping_method": None, "tracking_number": None}
+    label_map = {
+        "氏名": "recipient_name",
+        "住所": "recipient_address",
+        "配送方法": "shipping_method",
+        "追跡番号": "tracking_number",
+    }
+    for block in soup.select(".libTableCnfTop"):
+        header = block.find("div", class_="decThWrp")
+        if not header or "お届け情報" not in header.get_text():
+            continue
+        for tr in block.select(".libTableCnf table tr"):
+            th, td = tr.find("th"), tr.find("td")
+            if not th or not td:
+                continue
+            key = label_map.get(th.get_text(strip=True))
+            if key:
+                result[key] = " ".join(td.get_text(" ", strip=True).split())
+        break
+    return result
+
+
+async def fetch_contact_info(client: httpx.AsyncClient, contact_url: str, semaphore: asyncio.Semaphore) -> dict:
+    async with semaphore:
+        try:
+            resp = await client.get(contact_url)
+            resp.raise_for_status()
+            return {"contact_url": contact_url, **parse_contact_page(resp.text), "error": None}
+        except Exception as e:
+            return {"contact_url": contact_url, "error": str(e)}
+
+
+async def fetch_contact_info_many(cookies_path: str, settings: dict, contact_urls: list[str]) -> list[dict]:
+    cookies = load_yahoo_cookies(cookies_path)
+    headers = {"User-Agent": settings.get("user_agent", "yahoo-auction-tracker/1.0")}
+    timeout = settings.get("request_timeout_seconds", 15)
+    semaphore = asyncio.Semaphore(settings.get("request_concurrency", 5))
+    async with httpx.AsyncClient(cookies=cookies, headers=headers, timeout=timeout, follow_redirects=True) as client:
+        tasks = [fetch_contact_info(client, url, semaphore) for url in contact_urls]
+        return await asyncio.gather(*tasks)

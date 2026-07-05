@@ -324,6 +324,32 @@ def cmd_trade(args):
     conn.close()
     print(f"落札者なし商品を{len(unsold_rows)}件更新しました({since_str}以降)")
 
+    filled = _backfill_shipping_info(settings, cookies_path)
+    if filled:
+        print(f"お届け先情報を{filled}件取得しました(ローカルDB・Sheetsのみ)。")
+
+
+def _backfill_shipping_info(settings: dict, cookies_path: str) -> int:
+    """発送完了/要確認の行について、取引ナビからお届け先氏名・住所・追跡番号を取得する(ローカルDB限定)。"""
+    conn = db.connect()
+    rows = db.get_rows_needing_shipping_info(conn)
+    if not rows:
+        conn.close()
+        return 0
+    contact_urls = [r["contact_url"] for r in rows]
+    results = asyncio.run(scraper.fetch_contact_info_many(cookies_path, settings, contact_urls))
+    results_by_url = {r["contact_url"]: r for r in results}
+    filled = 0
+    for row in rows:
+        r = results_by_url.get(row["contact_url"], {})
+        if r.get("error"):
+            continue
+        db.update_shipping_info(conn, row["auction_id"], r)
+        filled += 1
+    conn.commit()
+    conn.close()
+    return filled
+
 
 def cmd_dashboard(args):
     conn = db.connect()

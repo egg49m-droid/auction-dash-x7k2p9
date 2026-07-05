@@ -144,11 +144,11 @@ TEMPLATE = """<!DOCTYPE html>
 
   <table>
     <thead>
-      <tr><th>出品日</th><th>アカウント</th><th>記号</th><th>ID</th><th>商品名</th><th>現在価格</th><th>入札</th><th>終了日時</th><th>状態</th><th>落札金額</th><th>取引状況</th></tr>
+      <tr><th>出品日</th><th>アカウント</th><th>記号</th><th>ID</th><th>商品名</th><th>現在価格</th><th>入札</th><th>終了日時</th><th>状態</th><th>落札金額</th><th>取引状況</th><th>お届け先</th><th>追跡番号</th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
-  <div class="note">※入札なしの行はうっすら赤、当日出品（新規）の行はうっすら青でハイライトしています。「記号」は商品名先頭の記号（現場担当者の識別記号）。「取引状況」は落札後の入金・発送・受け取り連絡の進捗です(ログイン取得できたアカウントのみ)。</div>
+  <div class="note">※入札なしの行はうっすら赤、当日出品（新規）の行はうっすら青でハイライトしています。「記号」は商品名先頭の記号（現場担当者の識別記号）。「取引状況」は落札後の入金・発送・受け取り連絡の進捗です(ログイン取得できたアカウントのみ)。「お届け先」「追跡番号」は個人情報のためローカルのみに保持しており、クラウド版には反映されません。</div>
 </div>
 
 <script>
@@ -253,6 +253,8 @@ function renderTable(){{
       <td><span class="badge ${{r.status==='出品中'?'b-active':'b-end'}}">${{r.status}}</span></td>
       <td>${{r.final!==null? '¥'+r.final.toLocaleString() : '-'}}</td>
       <td><span class="badge ${{tradeClass(r)}}">${{tradeLabel(r)}}</span></td>
+      <td class="name">${{r.recipientName? r.recipientName+'<br><span style="color:var(--sub);font-size:11px">'+ (r.recipientAddress||'') +'</span>' : '-'}}</td>
+      <td>${{r.trackingNumber||'-'}}</td>
     </tr>
   `;}}).join('');
 }}
@@ -281,6 +283,9 @@ def _row_to_data(row) -> dict:
         "mark": extract_staff_mark(row["title"]) or "(なし)",
         "tradeProgress": row["trade_progress"],
         "tradeMessage": row["trade_message"],
+        "recipientName": row["recipient_name"],
+        "recipientAddress": row["recipient_address"],
+        "trackingNumber": row["tracking_number"],
     }
 
 
