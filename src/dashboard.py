@@ -220,14 +220,14 @@ function tradeClass(r){{
 }}
 function combinedStatusLabel(r){{
   if(r.status==='出品中') return '出品中';
-  if(r.bids<=0) return '未落札';
   if(r.tradeProgress) return tradeLabel(r);
+  if(r.bids<=0) return '未落札';
   return '終了';
 }}
 function combinedStatusClass(r){{
   if(r.status==='出品中') return 'b-active';
-  if(r.bids<=0) return 'b-nashi';
   if(r.tradeProgress) return tradeClass(r);
+  if(r.bids<=0) return 'b-nashi';
   return 'b-end';
 }}
 
@@ -235,10 +235,10 @@ function matchesStateFilter(r, val){{
   if(!val) return true;
   const ended = r.status!=='出品中';
   if(val==='ACTIVE') return r.status==='出品中';
-  if(val==='NO_BID') return ended && r.bids<=0;
+  if(val==='NO_BID') return ended && !r.tradeProgress && r.bids<=0;
   if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress;
-  if(val==='ERROR') return ended && r.bids>0 && r.tradeProgress && !TRADE_LABELS[r.tradeProgress];
-  return ended && r.bids>0 && r.tradeProgress===val;
+  if(val==='ERROR') return ended && r.tradeProgress && !TRADE_LABELS[r.tradeProgress];
+  return ended && r.tradeProgress===val;
 }}
 
 function renderTable(){{

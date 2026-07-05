@@ -32,11 +32,11 @@ TRADE_ERROR_LABEL = "取引状況を確認してください(要確認)"
 def _combined_status(row) -> str:
     if row["status"] == "出品中":
         return "出品中"
-    if not (row["bid_count"] or 0) > 0:
-        return "未落札"
     trade_progress = row["trade_progress"]
     if trade_progress:
         return TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
+    if not (row["bid_count"] or 0) > 0:
+        return "未落札"
     return "終了"
 
 
