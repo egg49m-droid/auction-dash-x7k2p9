@@ -20,9 +20,15 @@ CREATE TABLE IF NOT EXISTS listings (
     listed_date     TEXT,
     last_checked_at TEXT,
     note            TEXT,
-    source          TEXT DEFAULT 'manual'
+    source          TEXT DEFAULT 'manual',
+    trade_progress  TEXT,
+    trade_message   TEXT,
+    buyer_id        TEXT,
+    contact_url     TEXT
 );
 """
+
+TRADE_COLUMNS = ["trade_progress", "trade_message", "buyer_id", "contact_url"]
 
 
 def connect():
@@ -33,7 +39,30 @@ def connect():
     existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(listings)")}
     if "source" not in existing_columns:
         conn.execute("ALTER TABLE listings ADD COLUMN source TEXT DEFAULT 'manual'")
+    for col in TRADE_COLUMNS:
+        if col not in existing_columns:
+            conn.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT")
     return conn
+
+
+def upsert_trade_status(conn, row: dict):
+    columns = [
+        "auction_id", "url", "account_name", "seller_id", "title",
+        "final_price", "end_datetime", "status", "source",
+        "trade_progress", "trade_message", "buyer_id", "contact_url",
+        "last_checked_at",
+    ]
+    update_columns = [
+        "url", "title", "final_price", "end_datetime", "status",
+        "trade_progress", "trade_message", "buyer_id", "contact_url", "last_checked_at",
+    ]
+    update_clause = ", ".join(f"{c}=excluded.{c}" for c in update_columns)
+    sql = f"""
+        INSERT INTO listings ({", ".join(columns)})
+        VALUES ({", ".join("?" for _ in columns)})
+        ON CONFLICT(auction_id) DO UPDATE SET {update_clause}
+    """
+    conn.execute(sql, [row.get(c) for c in columns])
 
 
 def get_sources(conn) -> dict:

@@ -14,3 +14,6 @@ launchd/com.piroegg.auctiontracker.ngrok.plist
 .claude/
 config/settings.json
 config/accounts.json
+config/yahoo_cookies.txt
+*cookies*.txt
+.yahoo_auction_secrets/

@@ -8,6 +8,14 @@
 
 同じ出品がどちらの経路でも見つかった場合は「自分の出品」を優先して保持する。
 
+## 落札後の取引状況（入金・発送・受け取り連絡）
+`surpass`アカウントについては、ログイン中のセッションcookieを使って「入金待ち／発送待ち／発送済み／受け取り完了」の進捗も取得できる（`main.py trade`）。この情報はヤフオクの公開ページではなく、ログインしないと見えない「取引ナビ」相当のAPIから取得している。
+
+- 対象範囲: `config/settings.json`の`trade_since`（デフォルト2026-06-01）以降に終了した落札案件
+- 必要なもの: `config/settings.json`の`yahoo_cookies_path`で指定したパスに、ログイン済みセッションのcookies.txt（Netscape形式）を配置しておく
+- **重要**: このcookieファイルはYahoo!アカウントへの生のログインセッションであり、`config/oauth_client.json`等よりも強い権限を持つ。**プロジェクトのgitリポジトリの外側**（例: `~/.yahoo_auction_secrets/cookies.txt`）に保管し、GitHub Secretsにもアップロードしないこと（`main.py all`実行時、GitHub Actions環境ではこのファイルが存在しないため`trade`ステップは自動的にスキップされる＝クラウド側では取引状況は更新されない、ローカルMacでの実行のみ有効）
+- cookieはセッションの有効期限が切れると使えなくなるため、`main.py trade`が失敗するようになったら、ブラウザで再ログインして拡張機能でcookieをエクスポートし直す必要がある
+
 ## セットアップ（初回のみ）
 
 ### 1. 依存ライブラリ（すでにvenv作成・インストール済み）
@@ -50,9 +58,10 @@ claude.aiで作成した `出品トラッキング_0704更新.xlsx` を取り込
 ```
 ./venv/bin/python3 main.py discover  # 3アカウントの出品者ページを丸ごとクロールし、新規出品を自動検出・既存分の価格/入札数を更新
 ./venv/bin/python3 main.py recheck   # DB内で出品中の行を再取得（discoverで確認できなかった＝終了した可能性がある行のみ個別に取得）
+./venv/bin/python3 main.py trade      # surpassアカウントの入金/発送/受け取り状況を更新（cookies.txtが必要、ローカルのみ）
 ./venv/bin/python3 main.py sync      # Googleスプレッドシートへ全件反映
 ./venv/bin/python3 main.py dashboard # output/dashboard.html を再生成
-./venv/bin/python3 main.py all       # discover→recheck→sync→dashboardをまとめて実行（自動実行はこれを使う）
+./venv/bin/python3 main.py all       # discover→recheck→trade→sync→dashboardをまとめて実行（自動実行はこれを使う）
 ```
 `discover`は出品者ページ（1アカウントにつき1〜数リクエスト、50件/ページ）だけで済むため、`add`の頃のように出品1件ずつページを取得する必要がなく非常に効率的。個別ページ取得(`recheck`)は「今回のdiscoverで見当たらなくなった＝終了した可能性がある行」だけに絞られる。
 

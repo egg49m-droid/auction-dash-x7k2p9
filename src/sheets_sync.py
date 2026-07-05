@@ -16,16 +16,26 @@ SCOPES = [
 HEADER = [
     "出品日", "アカウント名", "記号", "オークションID", "URL", "商品名",
     "開始価格", "現在価格", "入札件数", "入札有無", "終了日時",
-    "ステータス", "落札金額", "最終確認日時", "備考", "登録元",
+    "ステータス", "落札金額", "取引状況", "最終確認日時", "備考", "登録元",
 ]
+
+TRADE_LABELS = {
+    "ADDRESS_INPUTING": "入金待ち",
+    "PREPARATION_FOR_SHIPMENT": "発送待ち",
+    "SHIPPING": "発送済み",
+    "COMPLETE": "受け取り完了",
+}
 
 
 def _row_to_values(row) -> list:
+    trade_progress = row["trade_progress"]
+    trade_label = TRADE_LABELS.get(trade_progress, row["trade_message"]) if trade_progress else ""
     return [
         row["listed_date"], row["account_name"], extract_staff_mark(row["title"]),
         row["auction_id"], row["url"], row["title"],
         row["start_price"], row["current_price"], row["bid_count"], row["has_bid"],
-        row["end_datetime"], row["status"], row["final_price"], row["last_checked_at"], row["note"],
+        row["end_datetime"], row["status"], row["final_price"], trade_label,
+        row["last_checked_at"], row["note"],
         "自分の出品" if row["source"] == "manual" else "アカウント全体",
     ]
 

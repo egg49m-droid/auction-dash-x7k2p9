@@ -218,6 +218,55 @@ def cmd_sync(args):
     sheets_sync.sync(rows, settings, ROOT)
 
 
+def cmd_trade(args):
+    """ログイン中の出品者(取引ナビ)から、落札後の入金/発送/受け取り状況を取得する。cookies.txtが必要。"""
+    settings = load_json(ROOT / "config" / "settings.json")
+    accounts = load_json(ROOT / "config" / "accounts.json")
+    cookies_path = settings.get("yahoo_cookies_path")
+    if not cookies_path or not Path(cookies_path).exists():
+        print(f"cookieファイルが見つかりません: {cookies_path}\nsettings.jsonのyahoo_cookies_pathを確認してください。")
+        return
+
+    since_str = settings.get("trade_since", "2026-06-01")
+    since = date.fromisoformat(since_str)
+
+    rows = asyncio.run(scraper.fetch_won_items(cookies_path, settings, since))
+    if not rows:
+        print("取引データが取得できませんでした(cookieの期限切れの可能性があります)。")
+        return
+
+    surpass_seller_id = "8vYc4d8q5Sa3THmNAC8FZhbU4P8jW"
+    account_name = accounts.get(surpass_seller_id, "surpass")
+
+    conn = db.connect()
+    now = datetime.now().strftime("%Y/%m/%d %H:%M")
+    progress_counts = {}
+    for r in rows:
+        db.upsert_trade_status(conn, {
+            "auction_id": r["auction_id"],
+            "url": r["url"],
+            "account_name": account_name,
+            "seller_id": surpass_seller_id,
+            "title": r["title"],
+            "final_price": r["final_price"],
+            "end_datetime": r["end_datetime"],
+            "status": "終了",
+            "source": "auto",
+            "trade_progress": r["trade_progress"],
+            "trade_message": r["trade_message"],
+            "buyer_id": r["buyer_id"],
+            "contact_url": r["contact_url"],
+            "last_checked_at": now,
+        })
+        progress_counts[r["trade_progress"]] = progress_counts.get(r["trade_progress"], 0) + 1
+    conn.commit()
+    conn.close()
+
+    print(f"取引ステータスを{len(rows)}件更新しました({since_str}以降)")
+    for progress, count in progress_counts.items():
+        print(f"  - {progress}: {count}件")
+
+
 def cmd_dashboard(args):
     conn = db.connect()
     rows = db.get_all(conn)
@@ -248,6 +297,10 @@ def cmd_all(args):
     confirmed_active_ids = _discover(settings, accounts)
     _recheck(settings, accounts, skip_ids=confirmed_active_ids)
     try:
+        cmd_trade(args)
+    except Exception as e:
+        print(f"[警告] 取引ステータス取得をスキップしました: {e}")
+    try:
         cmd_sync(args)
     except Exception as e:
         print(f"[警告] Sheets同期をスキップしました: {e}")
@@ -259,6 +312,7 @@ COMMANDS = {
     "add": cmd_add,
     "discover": cmd_discover,
     "recheck": cmd_recheck,
+    "trade": cmd_trade,
     "sync": cmd_sync,
     "dashboard": cmd_dashboard,
     "all": cmd_all,

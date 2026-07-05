@@ -5,6 +5,8 @@
   "oauth_client_path": "config/oauth_client.json",
   "oauth_token_path": "config/token.json",
   "discover_since": "2026-07-01",
+  "trade_since": "2026-06-01",
+  "yahoo_cookies_path": "/Users/YOUR_USER/.yahoo_auction_secrets/cookies.txt",
   "request_concurrency": 5,
   "request_timeout_seconds": 15,
   "user_agent": "Mozilla/5.0 (compatible; yahoo-auction-tracker/1.0; personal-use-script)"

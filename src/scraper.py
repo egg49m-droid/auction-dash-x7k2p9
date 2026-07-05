@@ -1,4 +1,5 @@
 import asyncio
+import http.cookiejar
 import json
 import re
 from datetime import datetime, timezone, timedelta
@@ -140,3 +141,64 @@ async def fetch_all_seller_listings(seller_ids: list[str], settings: dict) -> di
         tasks = {sid: fetch_seller_listings(client, sid, semaphore) for sid in seller_ids}
         values = await asyncio.gather(*tasks.values())
         return dict(zip(tasks.keys(), values))
+
+
+def load_yahoo_cookies(cookies_path: str) -> httpx.Cookies:
+    cj = http.cookiejar.MozillaCookieJar(cookies_path)
+    cj.load(ignore_discard=True, ignore_expires=True)
+    cookies = httpx.Cookies()
+    for c in cj:
+        cookies.set(c.name, c.value, domain=c.domain, path=c.path)
+    return cookies
+
+
+def _trade_item_to_row(item: dict) -> dict:
+    end_dt = datetime.fromisoformat(item["endTime"]).astimezone(JST) if item.get("endTime") else None
+    sold = item.get("soldInfo", {})
+    trade = sold.get("trade", {})
+    winner = sold.get("winner", {})
+    return {
+        "auction_id": item["auctionId"],
+        "url": item.get("itemUrl"),
+        "title": item.get("title"),
+        "final_price": item.get("price"),
+        "end_datetime": end_dt.strftime("%Y/%m/%d %H:%M") if end_dt else None,
+        "end_date": end_dt.date() if end_dt else None,
+        "trade_progress": trade.get("progress"),
+        "trade_message": trade.get("message"),
+        "buyer_id": winner.get("aucUserId"),
+        "contact_url": winner.get("contactUrl"),
+    }
+
+
+async def fetch_won_items(cookies_path: str, settings: dict, since) -> list[dict]:
+    """Fetches the logged-in seller's closed & sold items (paginated), stopping once endTime < since."""
+    cookies = load_yahoo_cookies(cookies_path)
+    headers = {"User-Agent": settings.get("user_agent", "yahoo-auction-tracker/1.0")}
+    timeout = settings.get("request_timeout_seconds", 15)
+    results = []
+    offset = 0
+    page_size = 50
+    async with httpx.AsyncClient(cookies=cookies, headers=headers, timeout=timeout, follow_redirects=True) as client:
+        while True:
+            url = f"https://auctions.yahoo.co.jp/api/myauction/v1/myauction/items/closed?limit={page_size}&offset={offset}&sold=true"
+            resp = await client.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+            items = data.get("items", [])
+            if not items:
+                break
+            reached_cutoff = False
+            for item in items:
+                row = _trade_item_to_row(item)
+                if row["end_date"] and row["end_date"] < since:
+                    reached_cutoff = True
+                    break
+                results.append(row)
+            if reached_cutoff:
+                break
+            total = data.get("totalResultsAvailable", len(results))
+            offset += page_size
+            if offset >= total:
+                break
+    return results
