@@ -296,21 +296,33 @@ def _print_summary():
 
 
 def cmd_all(args):
-    """毎日の自動実行本体: アカウント全体クロール→(未確認分のみ)個別再チェック→Sheets同期→ダッシュボード再生成"""
+    """毎日の自動実行本体: アカウント全体クロール→(未確認分のみ)個別再チェック→Sheets同期→ダッシュボード再生成
+    取引ステータス(trade)はログインセッションを使うため、ここには含めず別スケジュール(cmd_all_trade)で数時間おきに実行する。
+    """
     settings = load_json(ROOT / "config" / "settings.json")
     accounts = load_json(ROOT / "config" / "accounts.json")
     confirmed_active_ids = _discover(settings, accounts)
     _recheck(settings, accounts, skip_ids=confirmed_active_ids)
-    try:
-        cmd_trade(args)
-    except Exception as e:
-        print(f"[警告] 取引ステータス取得をスキップしました: {e}")
     try:
         cmd_sync(args)
     except Exception as e:
         print(f"[警告] Sheets同期をスキップしました: {e}")
     cmd_dashboard(args)
     _print_summary()
+
+
+def cmd_all_trade(args):
+    """取引ステータス専用の自動実行: trade→sync→dashboard。数時間おきの専用スケジュールから呼ばれる。"""
+    try:
+        cmd_trade(args)
+    except Exception as e:
+        print(f"[警告] 取引ステータス取得をスキップしました: {e}")
+        return
+    try:
+        cmd_sync(args)
+    except Exception as e:
+        print(f"[警告] Sheets同期をスキップしました: {e}")
+    cmd_dashboard(args)
 
 
 COMMANDS = {
@@ -321,6 +333,7 @@ COMMANDS = {
     "sync": cmd_sync,
     "dashboard": cmd_dashboard,
     "all": cmd_all,
+    "all_trade": cmd_all_trade,
 }
 
 

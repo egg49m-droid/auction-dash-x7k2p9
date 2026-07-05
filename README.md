@@ -13,8 +13,9 @@
 
 - 対象範囲: `config/settings.json`の`trade_since`（デフォルト2026-06-01）以降に終了した落札案件
 - 必要なもの: `config/settings.json`の`yahoo_cookies_path`で指定したパスに、ログイン済みセッションのcookies.txt（Netscape形式）を配置しておく
-- **重要**: このcookieファイルはYahoo!アカウントへの生のログインセッションであり、`config/oauth_client.json`等よりも強い権限を持つ。**プロジェクトのgitリポジトリの外側**（例: `~/.yahoo_auction_secrets/cookies.txt`）に保管し、GitHub Secretsにもアップロードしないこと（`main.py all`実行時、GitHub Actions環境ではこのファイルが存在しないため`trade`ステップは自動的にスキップされる＝クラウド側では取引状況は更新されない、ローカルMacでの実行のみ有効）
+- **重要**: このcookieファイルはYahoo!アカウントへの生のログインセッションであり、`config/oauth_client.json`等よりも強い権限を持つ。**プロジェクトのgitリポジトリの外側**（例: `~/.yahoo_auction_secrets/cookies.txt`）に保管し、GitHub Secretsにもアップロードしないこと（クラウド側にはこのファイルが存在しないため`trade`は実行されず、ローカルMacでの実行のみ有効）
 - cookieはセッションの有効期限が切れると使えなくなるため、`main.py trade`が失敗するようになったら、ブラウザで再ログインして拡張機能でcookieをエクスポートし直す必要がある
+- **実行頻度について**: ログイン済みセッションでの自動アクセスは、同一アカウントへの過度な自動アクセスとしてYahoo側の不正検知に引っかかるリスクがあるため、`main.py trade`（`all_trade`）は`main.py all`（discover/recheckなど匿名アクセス）とは別の専用スケジュールで、1日6回・数時間おき・非規則的な時刻（`launchd/com.piroegg.auctiontracker.trade.plist`）で実行している。頻度を上げるとリスクも上がる点に注意すること
 
 ## セットアップ（初回のみ）
 
@@ -61,13 +62,15 @@ claude.aiで作成した `出品トラッキング_0704更新.xlsx` を取り込
 ./venv/bin/python3 main.py trade      # surpassアカウントの入金/発送/受け取り状況を更新（cookies.txtが必要、ローカルのみ）
 ./venv/bin/python3 main.py sync      # Googleスプレッドシートへ全件反映
 ./venv/bin/python3 main.py dashboard # output/dashboard.html を再生成
-./venv/bin/python3 main.py all       # discover→recheck→trade→sync→dashboardをまとめて実行（自動実行はこれを使う）
+./venv/bin/python3 main.py all       # discover→recheck→sync→dashboardをまとめて実行（匿名アクセスのみ、自動実行はこれを使う）
+./venv/bin/python3 main.py all_trade # trade→sync→dashboardをまとめて実行（ログインセッション使用、専用スケジュールから呼ばれる）
 ```
 `discover`は出品者ページ（1アカウントにつき1〜数リクエスト、50件/ページ）だけで済むため、`add`の頃のように出品1件ずつページを取得する必要がなく非常に効率的。個別ページ取得(`recheck`)は「今回のdiscoverで見当たらなくなった＝終了した可能性がある行」だけに絞られる。
 
 ## 自動実行（launchd）
-毎日12:00・19:00・22:30の3回、`main.py all`（アカウント全体クロール→個別再チェック→シート同期→ダッシュボード再生成）を自動実行する設定です。
-自分の出品の追加(`add`)は手動貼り付けが前提のため自動実行の対象外です。
+- 毎日12:00・19:00・22:30の3回、`main.py all`（アカウント全体クロール→個別再チェック→シート同期→ダッシュボード再生成、すべて匿名アクセス）を自動実行
+- 1日6回・数時間おきの非規則的な時刻（7:22, 10:48, 14:15, 17:39, 21:04, 23:51）に、`main.py all_trade`（ログインセッションを使った取引ステータス取得→シート同期→ダッシュボード再生成）を自動実行（`launchd/com.piroegg.auctiontracker.trade.plist`）
+- 自分の出品の追加(`add`)は手動貼り付けが前提のため自動実行の対象外
 
 セットアップ:
 ```

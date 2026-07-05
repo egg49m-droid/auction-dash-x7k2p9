@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.piroegg.auctiontracker.trade</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/piroegg/yahoo-auction-tracker/venv/bin/python3</string>
+        <string>/Users/piroegg/yahoo-auction-tracker/main.py</string>
+        <string>all_trade</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/piroegg/yahoo-auction-tracker</string>
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>7</integer>
+            <key>Minute</key>
+            <integer>22</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>10</integer>
+            <key>Minute</key>
+            <integer>48</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>14</integer>
+            <key>Minute</key>
+            <integer>15</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>39</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>21</integer>
+            <key>Minute</key>
+            <integer>4</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>23</integer>
+            <key>Minute</key>
+            <integer>51</integer>
+        </dict>
+    </array>
+    <key>StandardOutPath</key>
+    <string>/Users/piroegg/yahoo-auction-tracker/data/trade.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/piroegg/yahoo-auction-tracker/data/trade.err.log</string>
+</dict>
+</plist>
