@@ -61,8 +61,17 @@ async def fetch_one(client: httpx.AsyncClient, url: str, semaphore: asyncio.Sema
     async with semaphore:
         try:
             resp = await client.get(url)
-            resp.raise_for_status()
-            parsed = parse_auction_html(resp.text)
+            # Yahoo returns 404 for some ended (no-bid) auctions while still rendering the full item JSON,
+            # so parse first and only treat it as a hard failure if parsing also fails.
+            if resp.status_code >= 400:
+                try:
+                    parsed = parse_auction_html(resp.text)
+                except ValueError:
+                    resp.raise_for_status()
+                    raise
+            else:
+                parsed = parse_auction_html(resp.text)
+            parsed["url"] = url
             parsed["url"] = url
             parsed["error"] = None
             return parsed
@@ -177,17 +186,34 @@ def _trade_item_to_row(item: dict) -> dict:
     }
 
 
-async def fetch_won_items(cookies_path: str, settings: dict, since) -> list[dict]:
-    """Fetches the logged-in seller's closed & sold items (paginated), stopping once endTime < since."""
+def _unsold_item_to_row(item: dict) -> dict:
+    end_dt = datetime.fromisoformat(item["endTime"]).astimezone(JST) if item.get("endTime") else None
+    return {
+        "auction_id": item["auctionId"],
+        "url": item.get("itemUrl"),
+        "title": item.get("title"),
+        "final_price": None,
+        "end_datetime": end_dt.strftime("%Y/%m/%d %H:%M") if end_dt else None,
+        "end_date": end_dt.date() if end_dt else None,
+        "trade_progress": None,
+        "trade_message": None,
+        "buyer_id": None,
+        "contact_url": None,
+    }
+
+
+async def _fetch_closed_items(cookies_path: str, settings: dict, since, sold: bool, item_mapper) -> list[dict]:
+    """Fetches the logged-in seller's closed items (paginated), stopping once endTime < since."""
     cookies = load_yahoo_cookies(cookies_path)
     headers = {"User-Agent": settings.get("user_agent", "yahoo-auction-tracker/1.0")}
     timeout = settings.get("request_timeout_seconds", 15)
+    sold_param = "true" if sold else "false"
     results = []
     offset = 0
     page_size = 50
     async with httpx.AsyncClient(cookies=cookies, headers=headers, timeout=timeout, follow_redirects=True) as client:
         while True:
-            url = f"https://auctions.yahoo.co.jp/api/myauction/v1/myauction/items/closed?limit={page_size}&offset={offset}&sold=true"
+            url = f"https://auctions.yahoo.co.jp/api/myauction/v1/myauction/items/closed?limit={page_size}&offset={offset}&sold={sold_param}"
             resp = await client.get(url)
             resp.raise_for_status()
             data = resp.json()
@@ -196,7 +222,7 @@ async def fetch_won_items(cookies_path: str, settings: dict, since) -> list[dict
                 break
             reached_cutoff = False
             for item in items:
-                row = _trade_item_to_row(item)
+                row = item_mapper(item)
                 if row["end_date"] and row["end_date"] < since:
                     reached_cutoff = True
                     break
@@ -208,3 +234,13 @@ async def fetch_won_items(cookies_path: str, settings: dict, since) -> list[dict
             if offset >= total:
                 break
     return results
+
+
+async def fetch_won_items(cookies_path: str, settings: dict, since) -> list[dict]:
+    """Fetches the logged-in seller's closed & sold (has a winner) items."""
+    return await _fetch_closed_items(cookies_path, settings, since, sold=True, item_mapper=_trade_item_to_row)
+
+
+async def fetch_unsold_items(cookies_path: str, settings: dict, since) -> list[dict]:
+    """Fetches the logged-in seller's closed & unsold (no winner) items."""
+    return await _fetch_closed_items(cookies_path, settings, since, sold=False, item_mapper=_unsold_item_to_row)

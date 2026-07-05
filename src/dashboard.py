@@ -138,18 +138,17 @@ TEMPLATE = """<!DOCTYPE html>
     <select id="fMark"><option value="">全記号（担当者）</option></select>
     <select id="fBid"><option value="">入札 全て</option><option value="あり">入札あり</option><option value="なし">入札なし</option></select>
     <select id="fStatus"><option value="">状態 全て</option><option value="出品中">出品中</option><option value="終了">終了</option></select>
-    <select id="fSource"><option value="">登録元 全て</option><option value="manual">自分の出品のみ</option><option value="auto">アカウント全体（自動検出）</option></select>
     <select id="fTrade"><option value="">取引状況 全て</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option></select>
     <input id="fSearch" placeholder="商品名/IDで検索..." />
   </div>
 
   <table>
     <thead>
-      <tr><th>出品日</th><th>アカウント</th><th>記号</th><th>ID</th><th>商品名</th><th>現在価格</th><th>入札</th><th>終了日時</th><th>状態</th><th>落札金額</th><th>取引状況</th><th>登録元</th></tr>
+      <tr><th>出品日</th><th>アカウント</th><th>記号</th><th>ID</th><th>商品名</th><th>現在価格</th><th>入札</th><th>終了日時</th><th>状態</th><th>落札金額</th><th>取引状況</th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
-  <div class="note">※入札なしの行はうっすら赤、当日出品（新規）の行はうっすら青でハイライトしています。「記号」は商品名先頭の記号（現場担当者の識別記号）、「登録元」で自分が明示的にURLを送った出品（自分の出品）と、アカウント全体から自動検出した出品を絞り込めます。「取引状況」は落札後の入金・発送・受け取り連絡の進捗です(ログイン取得できたアカウントのみ)。</div>
+  <div class="note">※入札なしの行はうっすら赤、当日出品（新規）の行はうっすら青でハイライトしています。「記号」は商品名先頭の記号（現場担当者の識別記号）。「取引状況」は落札後の入金・発送・受け取り連絡の進捗です(ログイン取得できたアカウントのみ)。</div>
 </div>
 
 <script>
@@ -223,7 +222,7 @@ function tradeClass(r){{
 
 function renderTable(){{
   const dv=daySel.value, av=accSel.value, mv=markSel.value, bv=document.getElementById('fBid').value,
-        sv=document.getElementById('fStatus').value, srcv=document.getElementById('fSource').value,
+        sv=document.getElementById('fStatus').value,
         tv=document.getElementById('fTrade').value,
         q=document.getElementById('fSearch').value.trim();
   const rows = DATA.filter(r=>{{
@@ -233,7 +232,6 @@ function renderTable(){{
     if(bv==="あり" && r.bids<=0) return false;
     if(bv==="なし" && r.bids>0) return false;
     if(sv && r.status!==sv) return false;
-    if(srcv && r.source!==srcv) return false;
     if(tv==="ERROR" && !(r.tradeProgress && !TRADE_LABELS[r.tradeProgress])) return false;
     if(tv && tv!=="ERROR" && r.tradeProgress!==tv) return false;
     if(q && !(r.name.includes(q)||r.id.includes(q))) return false;
@@ -255,12 +253,11 @@ function renderTable(){{
       <td><span class="badge ${{r.status==='出品中'?'b-active':'b-end'}}">${{r.status}}</span></td>
       <td>${{r.final!==null? '¥'+r.final.toLocaleString() : '-'}}</td>
       <td><span class="badge ${{tradeClass(r)}}">${{tradeLabel(r)}}</span></td>
-      <td>${{r.source==='manual'? '自分の出品' : 'アカウント全体'}}</td>
     </tr>
   `;}}).join('');
 }}
 
-['fDay','fAcc','fMark','fBid','fStatus','fSource','fTrade'].forEach(id=>document.getElementById(id).addEventListener('change',renderTable));
+['fDay','fAcc','fMark','fBid','fStatus','fTrade'].forEach(id=>document.getElementById(id).addEventListener('change',renderTable));
 document.getElementById('fSearch').addEventListener('input',renderTable);
 renderTable();
 </script>

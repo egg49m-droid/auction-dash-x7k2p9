@@ -301,6 +301,29 @@ def cmd_trade(args):
     for progress, count in progress_counts.items():
         print(f"  - {progress}: {count}件")
 
+    unsold_rows = asyncio.run(scraper.fetch_unsold_items(cookies_path, settings, since))
+    conn = db.connect()
+    for r in unsold_rows:
+        db.upsert_trade_status(conn, {
+            "auction_id": r["auction_id"],
+            "url": r["url"],
+            "account_name": account_name,
+            "seller_id": surpass_seller_id,
+            "title": r["title"],
+            "final_price": None,
+            "end_datetime": r["end_datetime"],
+            "status": "終了",
+            "source": "auto",
+            "trade_progress": None,
+            "trade_message": None,
+            "buyer_id": None,
+            "contact_url": None,
+            "last_checked_at": now,
+        })
+    conn.commit()
+    conn.close()
+    print(f"落札者なし商品を{len(unsold_rows)}件更新しました({since_str}以降)")
+
 
 def cmd_dashboard(args):
     conn = db.connect()
