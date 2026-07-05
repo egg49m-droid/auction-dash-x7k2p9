@@ -75,6 +75,10 @@ TEMPLATE = """<!DOCTYPE html>
   .head{{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;gap:10px;}}
   .head h1{{font-size:19px;margin:0 0 4px;font-weight:700;letter-spacing:.2px;}}
   .head p{{margin:0;color:var(--sub);font-size:12.5px;}}
+  .cardsPriority{{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px;}}
+  .cardPriority{{background:linear-gradient(135deg,rgba(52,211,153,.16),var(--panel));border:1px solid var(--good);border-radius:10px;padding:16px 18px;}}
+  .cardPriority .n{{font-size:30px;font-weight:800;color:var(--good);}}
+  .cardPriority .l{{font-size:12px;color:var(--sub);margin-top:4px;}}
   .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}}
   .card{{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}}
   .card .n{{font-size:22px;font-weight:700;}}
@@ -128,6 +132,7 @@ TEMPLATE = """<!DOCTYPE html>
     </div>
   </div>
 
+  <div class="cardsPriority" id="cardsPriority"></div>
   <div class="cards" id="cards"></div>
   <div class="accrow" id="accCards"></div>
   <div class="markrow" id="markCards"></div>
@@ -170,18 +175,31 @@ const markSel = document.getElementById('fMark');
 
 function accBadgeClass(a){{ return ACC_CLASS[a] || 'acc-x'; }}
 
+function isWon(r){{
+  return r.status!=='出品中' && (!!r.tradeProgress || r.bids>0);
+}}
+
 function renderCards(rows){{
   const total = rows.length;
   const withBid = rows.filter(r=>r.bids>0).length;
-  const rate = total? ((withBid/total)*100).toFixed(1):"0.0";
+  const bidRate = total? ((withBid/total)*100).toFixed(1):"0.0";
   const totalBids = rows.reduce((a,r)=>a+r.bids,0);
-  const ended = rows.filter(r=>r.status==="終了").length;
+  const avgBids = total? (totalBids/total).toFixed(2):"0.00";
+  const ended = rows.filter(r=>r.status==="終了");
+  const won = rows.filter(isWon);
+  const winRate = ended.length? ((won.length/ended.length)*100).toFixed(1):"0.0";
+  const settled = rows.filter(r=>r.tradeProgress==='COMPLETE');
+  const settledTotal = settled.reduce((a,r)=>a+(r.final||0),0);
+
+  document.getElementById('cardsPriority').innerHTML = `
+    <div class="cardPriority"><div class="n">${{settled.length}}</div><div class="l">着金件数</div></div>
+    <div class="cardPriority"><div class="n">¥${{settledTotal.toLocaleString()}}</div><div class="l">着金総額</div></div>
+  `;
   document.getElementById('cards').innerHTML = `
-    <div class="card"><div class="n">${{total}}</div><div class="l">表示中の出品数</div></div>
-    <div class="card"><div class="n good">${{withBid}}</div><div class="l">入札あり件数</div></div>
-    <div class="card"><div class="n warn">${{rate}}%</div><div class="l">入札率</div></div>
-    <div class="card"><div class="n">${{totalBids}}</div><div class="l">合計入札件数</div></div>
-    <div class="card"><div class="n">${{ended}}</div><div class="l">終了済み件数</div></div>
+    <div class="card"><div class="n warn">${{winRate}}%</div><div class="l">落札率</div></div>
+    <div class="card"><div class="n">${{won.length}}</div><div class="l">落札件数</div></div>
+    <div class="card"><div class="n good">${{bidRate}}%</div><div class="l">入札率</div></div>
+    <div class="card"><div class="n">${{avgBids}}</div><div class="l">平均入札回数</div></div>
   `;
   const accs = [...new Set(DATA.map(d=>d.account))];
   document.getElementById('accCards').innerHTML = accs.map(a=>{{
