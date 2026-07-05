@@ -226,9 +226,11 @@ def cmd_sync(args):
 
 
 def _backfill_listed_dates(settings: dict):
-    """出品日(listed_date)が空の行を、個別ページ(公開・匿名アクセス)から再取得して埋める。"""
+    """終了済みで出品日・現在価格・入札件数のいずれかが空の行を、個別ページ(公開・匿名アクセス)から再取得して埋める。
+    取引ナビ経由で登録された落札/落札者なし商品は、開始価格500円固定のため現在価格・入札件数が未設定になっている。
+    """
     conn = db.connect()
-    rows = db.get_missing_listed_date(conn)
+    rows = db.get_ended_missing_price_or_bid_or_date(conn)
     if not rows:
         conn.close()
         return 0
@@ -238,9 +240,15 @@ def _backfill_listed_dates(settings: dict):
     filled = 0
     for row in rows:
         r = results_by_url.get(row["url"], {})
-        if r.get("error") or not r.get("listed_date"):
+        if r.get("error"):
             continue
-        db.update_listed_date(conn, row["auction_id"], r["listed_date"])
+        db.update_price_bid_date(
+            conn, row["auction_id"],
+            current_price=r.get("current_price") if r.get("current_price") is not None else row["current_price"],
+            bid_count=r.get("bid_count") if r.get("bid_count") is not None else row["bid_count"],
+            has_bid=r.get("has_bid") or row["has_bid"],
+            listed_date=r.get("listed_date") or row["listed_date"],
+        )
         filled += 1
     conn.commit()
     conn.close()
@@ -250,7 +258,7 @@ def _backfill_listed_dates(settings: dict):
 def cmd_backfill_dates(args):
     settings = load_json(ROOT / "config" / "settings.json")
     filled = _backfill_listed_dates(settings)
-    print(f"出品日を{filled}件補完しました。")
+    print(f"出品日・現在価格・入札件数を{filled}件補完しました。")
 
 
 def cmd_trade(args):
@@ -437,9 +445,9 @@ def cmd_all_trade(args):
         settings = load_json(ROOT / "config" / "settings.json")
         filled = _backfill_listed_dates(settings)
         if filled:
-            print(f"出品日を{filled}件補完しました。")
+            print(f"出品日・現在価格・入札件数を{filled}件補完しました。")
     except Exception as e:
-        print(f"[警告] 出品日の補完をスキップしました: {e}")
+        print(f"[警告] 出品日等の補完をスキップしました: {e}")
     try:
         cmd_sync(args)
     except Exception as e:

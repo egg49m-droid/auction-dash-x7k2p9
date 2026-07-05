@@ -149,6 +149,21 @@ def update_listed_date(conn, auction_id: str, listed_date: str):
     conn.execute("UPDATE listings SET listed_date = ? WHERE auction_id = ?", (listed_date, auction_id))
 
 
+def get_ended_missing_price_or_bid_or_date(conn):
+    """終了済みで、現在価格・入札件数・出品日のいずれかが未取得の行(取引ナビ経由で登録された落札/落札者なし商品など)。"""
+    return conn.execute(
+        """SELECT * FROM listings WHERE status = '終了'
+           AND (current_price IS NULL OR bid_count IS NULL OR listed_date IS NULL OR listed_date = '')"""
+    ).fetchall()
+
+
+def update_price_bid_date(conn, auction_id: str, current_price, bid_count, has_bid, listed_date):
+    conn.execute(
+        "UPDATE listings SET current_price = ?, bid_count = ?, has_bid = ?, listed_date = ? WHERE auction_id = ?",
+        (current_price, bid_count, has_bid, listed_date, auction_id),
+    )
+
+
 def get_active(conn):
     return conn.execute("SELECT * FROM listings WHERE status = '出品中'").fetchall()
 

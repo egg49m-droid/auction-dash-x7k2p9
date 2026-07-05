@@ -15,9 +15,9 @@ SCOPES = [
 
 HEADER = [
     "出品日", "アカウント名", "記号", "オークションID", "URL", "商品名",
-    "開始価格", "現在価格", "入札件数", "入札有無", "終了日時",
-    "ステータス", "落札金額", "取引状況", "お届け先氏名", "お届け先住所", "配送方法", "追跡番号",
-    "最終確認日時", "備考",
+    "現在価格", "入札件数", "入札有無", "終了日時",
+    "ステータス", "落札金額", "お届け先氏名", "お届け先住所", "配送方法", "追跡番号",
+    "備考",
 ]
 
 TRADE_LABELS = {
@@ -29,16 +29,25 @@ TRADE_LABELS = {
 TRADE_ERROR_LABEL = "取引状況を確認してください(要確認)"
 
 
-def _row_to_values(row) -> list:
+def _combined_status(row) -> str:
+    if row["status"] == "出品中":
+        return "出品中"
+    if not (row["bid_count"] or 0) > 0:
+        return "未落札"
     trade_progress = row["trade_progress"]
-    trade_label = TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL) if trade_progress else ""
+    if trade_progress:
+        return TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
+    return "終了"
+
+
+def _row_to_values(row) -> list:
     return [
         row["listed_date"], row["account_name"], extract_staff_mark(row["title"]),
         row["auction_id"], row["url"], row["title"],
-        row["start_price"], row["current_price"], row["bid_count"], row["has_bid"],
-        row["end_datetime"], row["status"], row["final_price"], trade_label,
+        row["current_price"], row["bid_count"], row["has_bid"],
+        row["end_datetime"], _combined_status(row), row["final_price"],
         row["recipient_name"], row["recipient_address"], row["shipping_method"], row["tracking_number"],
-        row["last_checked_at"], row["note"],
+        row["note"],
     ]
 
 

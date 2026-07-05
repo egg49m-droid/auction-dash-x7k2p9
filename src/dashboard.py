@@ -137,14 +137,13 @@ TEMPLATE = """<!DOCTYPE html>
     <select id="fAcc"><option value="">全アカウント</option></select>
     <select id="fMark"><option value="">全記号（担当者）</option></select>
     <select id="fBid"><option value="">入札 全て</option><option value="あり">入札あり</option><option value="なし">入札なし</option></select>
-    <select id="fStatus"><option value="">状態 全て</option><option value="出品中">出品中</option><option value="終了">終了</option></select>
-    <select id="fTrade"><option value="">取引状況 全て</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option></select>
+    <select id="fState"><option value="">ステータス 全て</option><option value="ACTIVE">出品中</option><option value="NO_BID">未落札</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option><option value="ENDED_UNKNOWN">終了(取引情報なし)</option></select>
     <input id="fSearch" placeholder="商品名/IDで検索..." />
   </div>
 
   <table>
     <thead>
-      <tr><th>出品日</th><th>アカウント</th><th>記号</th><th>ID</th><th>商品名</th><th>現在価格</th><th>入札</th><th>終了日時</th><th>状態</th><th>落札金額</th><th>取引状況</th><th>お届け先</th><th>追跡番号</th></tr>
+      <tr><th>出品日</th><th>アカウント</th><th>記号</th><th>ID</th><th>商品名</th><th>現在価格</th><th>入札</th><th>終了日時</th><th>ステータス</th><th>落札金額</th><th>お届け先</th><th>追跡番号</th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -219,11 +218,32 @@ function tradeClass(r){{
   if(!r.tradeProgress) return 'b-trade-none';
   return TRADE_CLASSES[r.tradeProgress] || 'b-trade-error';
 }}
+function combinedStatusLabel(r){{
+  if(r.status==='出品中') return '出品中';
+  if(r.bids<=0) return '未落札';
+  if(r.tradeProgress) return tradeLabel(r);
+  return '終了';
+}}
+function combinedStatusClass(r){{
+  if(r.status==='出品中') return 'b-active';
+  if(r.bids<=0) return 'b-nashi';
+  if(r.tradeProgress) return tradeClass(r);
+  return 'b-end';
+}}
+
+function matchesStateFilter(r, val){{
+  if(!val) return true;
+  const ended = r.status!=='出品中';
+  if(val==='ACTIVE') return r.status==='出品中';
+  if(val==='NO_BID') return ended && r.bids<=0;
+  if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress;
+  if(val==='ERROR') return ended && r.bids>0 && r.tradeProgress && !TRADE_LABELS[r.tradeProgress];
+  return ended && r.bids>0 && r.tradeProgress===val;
+}}
 
 function renderTable(){{
   const dv=daySel.value, av=accSel.value, mv=markSel.value, bv=document.getElementById('fBid').value,
-        sv=document.getElementById('fStatus').value,
-        tv=document.getElementById('fTrade').value,
+        stv=document.getElementById('fState').value,
         q=document.getElementById('fSearch').value.trim();
   const rows = DATA.filter(r=>{{
     if(dv && r.day!==dv) return false;
@@ -231,9 +251,7 @@ function renderTable(){{
     if(mv && r.mark!==mv) return false;
     if(bv==="あり" && r.bids<=0) return false;
     if(bv==="なし" && r.bids>0) return false;
-    if(sv && r.status!==sv) return false;
-    if(tv==="ERROR" && !(r.tradeProgress && !TRADE_LABELS[r.tradeProgress])) return false;
-    if(tv && tv!=="ERROR" && r.tradeProgress!==tv) return false;
+    if(!matchesStateFilter(r, stv)) return false;
     if(q && !(r.name.includes(q)||r.id.includes(q))) return false;
     return true;
   }});
@@ -250,16 +268,15 @@ function renderTable(){{
       <td>${{r.price!==null? '¥'+r.price.toLocaleString() : '-'}}</td>
       <td><span class="badge ${{r.bids>0?'b-ari':'b-nashi'}}">${{r.bids>0?'あり('+r.bids+')':'なし'}}</span></td>
       <td>${{r.end||'-'}}</td>
-      <td><span class="badge ${{r.status==='出品中'?'b-active':'b-end'}}">${{r.status}}</span></td>
+      <td><span class="badge ${{combinedStatusClass(r)}}">${{combinedStatusLabel(r)}}</span></td>
       <td>${{r.final!==null? '¥'+r.final.toLocaleString() : '-'}}</td>
-      <td><span class="badge ${{tradeClass(r)}}">${{tradeLabel(r)}}</span></td>
       <td class="name">${{r.recipientName? r.recipientName+'<br><span style="color:var(--sub);font-size:11px">'+ (r.recipientAddress||'') +'</span>' : '-'}}</td>
       <td>${{r.trackingNumber||'-'}}</td>
     </tr>
   `;}}).join('');
 }}
 
-['fDay','fAcc','fMark','fBid','fStatus','fTrade'].forEach(id=>document.getElementById(id).addEventListener('change',renderTable));
+['fDay','fAcc','fMark','fBid','fState'].forEach(id=>document.getElementById(id).addEventListener('change',renderTable));
 document.getElementById('fSearch').addEventListener('input',renderTable);
 renderTable();
 </script>
