@@ -138,6 +138,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div class="markrow" id="markCards"></div>
 
   <div class="controls">
+    <select id="fMonth"><option value="">全期間</option></select>
     <select id="fDay"><option value="">全日程</option></select>
     <select id="fAcc"><option value="">全アカウント</option></select>
     <select id="fMark"><option value="">全記号（担当者）</option></select>
@@ -160,6 +161,10 @@ const DATA = {data_json};
 const ACC_CLASS = {acc_class_json};
 const LATEST_DAY = {latest_day_json};
 
+const monthSel = document.getElementById('fMonth');
+[...new Set(DATA.map(d=>d.month).filter(Boolean))].sort().forEach(m=>{{
+  const o=document.createElement('option'); o.value=m; o.textContent=m.replace('/','年')+'月'; monthSel.appendChild(o);
+}});
 const daySel = document.getElementById('fDay');
 [...new Set(DATA.map(d=>d.day))].sort().forEach(d=>{{
   const o=document.createElement('option'); o.value=d; o.textContent=d; daySel.appendChild(o);
@@ -179,7 +184,8 @@ function isWon(r){{
   return r.status!=='出品中' && (!!r.tradeProgress || r.bids>0);
 }}
 
-function renderCards(rows){{
+function renderCards(rows, monthFilter){{
+  const monthScoped = monthFilter ? DATA.filter(d=>d.month===monthFilter) : DATA;
   const total = rows.length;
   const withBid = rows.filter(r=>r.bids>0).length;
   const bidRate = total? ((withBid/total)*100).toFixed(1):"0.0";
@@ -203,17 +209,17 @@ function renderCards(rows){{
   `;
   const accs = [...new Set(DATA.map(d=>d.account))];
   document.getElementById('accCards').innerHTML = accs.map(a=>{{
-    const sub = DATA.filter(r=>r.account===a);
-    const bid = sub.filter(r=>r.bids>0).length;
-    const rt = sub.length? ((bid/sub.length)*100).toFixed(0):"0";
-    return `<div class="acard"><div class="an"><span class="badge ${{accBadgeClass(a)}}">${{a}}</span></div><div class="av">${{sub.length}}件 ／ 入札率${{rt}}%</div></div>`;
+    const sub = monthScoped.filter(r=>r.account===a);
+    const subSettled = sub.filter(r=>r.tradeProgress==='COMPLETE');
+    const subTotal = subSettled.reduce((acc,r)=>acc+(r.final||0),0);
+    return `<div class="acard"><div class="an"><span class="badge ${{accBadgeClass(a)}}">${{a}}</span></div><div class="av">着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
   }}).join('');
   const marks = [...new Set(DATA.map(d=>d.mark))].sort();
   document.getElementById('markCards').innerHTML = marks.map(m=>{{
-    const sub = DATA.filter(r=>r.mark===m);
-    const bid = sub.filter(r=>r.bids>0).length;
-    const rt = sub.length? ((bid/sub.length)*100).toFixed(0):"0";
-    return `<div class="mcard"><div class="mn">${{m}}</div><div class="mv">${{sub.length}}件 ／ 入札率${{rt}}%</div></div>`;
+    const sub = monthScoped.filter(r=>r.mark===m);
+    const subSettled = sub.filter(r=>r.tradeProgress==='COMPLETE');
+    const subTotal = subSettled.reduce((acc,r)=>acc+(r.final||0),0);
+    return `<div class="mcard"><div class="mn">${{m}}</div><div class="mv">着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
   }}).join('');
 }}
 
@@ -260,10 +266,11 @@ function matchesStateFilter(r, val){{
 }}
 
 function renderTable(){{
-  const dv=daySel.value, av=accSel.value, mv=markSel.value, bv=document.getElementById('fBid').value,
+  const mo=monthSel.value, dv=daySel.value, av=accSel.value, mv=markSel.value, bv=document.getElementById('fBid').value,
         stv=document.getElementById('fState').value,
         q=document.getElementById('fSearch').value.trim();
   const rows = DATA.filter(r=>{{
+    if(mo && r.month!==mo) return false;
     if(dv && r.day!==dv) return false;
     if(av && r.account!==av) return false;
     if(mv && r.mark!==mv) return false;
@@ -273,7 +280,7 @@ function renderTable(){{
     if(q && !(r.name.includes(q)||r.id.includes(q))) return false;
     return true;
   }});
-  renderCards(rows);
+  renderCards(rows, mo);
   document.getElementById('tbody').innerHTML = rows.map(r=>{{
     const rowClass = r.bids<=0 ? 'row-nobid' : (r.day===LATEST_DAY ? 'row-new' : '');
     return `
@@ -294,7 +301,7 @@ function renderTable(){{
   `;}}).join('');
 }}
 
-['fDay','fAcc','fMark','fBid','fState'].forEach(id=>document.getElementById(id).addEventListener('change',renderTable));
+['fMonth','fDay','fAcc','fMark','fBid','fState'].forEach(id=>document.getElementById(id).addEventListener('change',renderTable));
 document.getElementById('fSearch').addEventListener('input',renderTable);
 renderTable();
 </script>
@@ -303,9 +310,16 @@ renderTable();
 """
 
 
+def _month_from_listed_date(listed_date):
+    if not listed_date or len(listed_date) < 7:
+        return None
+    return listed_date[:7]  # "2026/06/11" -> "2026/06"
+
+
 def _row_to_data(row) -> dict:
     return {
         "day": row["listed_date"],
+        "month": _month_from_listed_date(row["listed_date"]),
         "account": row["account_name"],
         "id": row["auction_id"],
         "name": row["title"],
