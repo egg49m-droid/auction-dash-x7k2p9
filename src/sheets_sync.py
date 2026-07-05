@@ -20,16 +20,17 @@ HEADER = [
 ]
 
 TRADE_LABELS = {
-    "ADDRESS_INPUTING": "入金待ち",
-    "PREPARATION_FOR_SHIPMENT": "発送待ち",
-    "SHIPPING": "発送済み",
-    "COMPLETE": "受け取り完了",
+    "ADDRESS_INPUTING": "落札者からの連絡待ちです(入金待ち)",
+    "PREPARATION_FOR_SHIPMENT": "発送をしてください(発送待ち・要対応)",
+    "SHIPPING": "発送完了しました(受け取り待ち)",
+    "COMPLETE": "受け取り連絡がされました(着金)",
 }
+TRADE_ERROR_LABEL = "取引状況を確認してください(要確認)"
 
 
 def _row_to_values(row) -> list:
     trade_progress = row["trade_progress"]
-    trade_label = TRADE_LABELS.get(trade_progress, row["trade_message"]) if trade_progress else ""
+    trade_label = TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL) if trade_progress else ""
     return [
         row["listed_date"], row["account_name"], extract_staff_mark(row["title"]),
         row["auction_id"], row["url"], row["title"],

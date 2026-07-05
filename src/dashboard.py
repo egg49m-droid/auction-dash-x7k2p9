@@ -107,6 +107,7 @@ TEMPLATE = """<!DOCTYPE html>
   .b-trade-shipped{{background:rgba(76,141,255,.15);color:var(--accent);}}
   .b-trade-complete{{background:rgba(52,211,153,.15);color:var(--good);}}
   .b-trade-none{{background:rgba(139,152,179,.15);color:var(--sub);}}
+  .b-trade-error{{background:rgba(248,113,113,.3);color:#fff;font-weight:700;}}
   .markrow{{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px;}}
   .mcard{{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;}}
   .mcard .mn{{font-size:13px;font-weight:700;}}
@@ -138,7 +139,7 @@ TEMPLATE = """<!DOCTYPE html>
     <select id="fBid"><option value="">入札 全て</option><option value="あり">入札あり</option><option value="なし">入札なし</option></select>
     <select id="fStatus"><option value="">状態 全て</option><option value="出品中">出品中</option><option value="終了">終了</option></select>
     <select id="fSource"><option value="">登録元 全て</option><option value="manual">自分の出品のみ</option><option value="auto">アカウント全体（自動検出）</option></select>
-    <select id="fTrade"><option value="">取引状況 全て</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち</option><option value="SHIPPING">発送済み</option><option value="COMPLETE">受け取り完了</option></select>
+    <select id="fTrade"><option value="">取引状況 全て</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option></select>
     <input id="fSearch" placeholder="商品名/IDで検索..." />
   </div>
 
@@ -201,15 +202,24 @@ function renderCards(rows){{
 }}
 
 const TRADE_LABELS = {{
-  ADDRESS_INPUTING: '入金待ち', PREPARATION_FOR_SHIPMENT: '発送待ち',
-  SHIPPING: '発送済み', COMPLETE: '受け取り完了',
+  ADDRESS_INPUTING: '落札者からの連絡待ちです(入金待ち)',
+  PREPARATION_FOR_SHIPMENT: '発送をしてください(発送待ち・要対応)',
+  SHIPPING: '発送完了しました(受け取り待ち)',
+  COMPLETE: '受け取り連絡がされました(着金)',
 }};
 const TRADE_CLASSES = {{
   ADDRESS_INPUTING: 'b-trade-wait', PREPARATION_FOR_SHIPMENT: 'b-trade-ship',
   SHIPPING: 'b-trade-shipped', COMPLETE: 'b-trade-complete',
 }};
-function tradeLabel(r){{ return r.tradeProgress ? (TRADE_LABELS[r.tradeProgress] || r.tradeMessage || r.tradeProgress) : '-'; }}
-function tradeClass(r){{ return r.tradeProgress ? (TRADE_CLASSES[r.tradeProgress] || 'b-trade-none') : 'b-trade-none'; }}
+const TRADE_ERROR_LABEL = '取引状況を確認してください(要確認)';
+function tradeLabel(r){{
+  if(!r.tradeProgress) return '-';
+  return TRADE_LABELS[r.tradeProgress] || TRADE_ERROR_LABEL;
+}}
+function tradeClass(r){{
+  if(!r.tradeProgress) return 'b-trade-none';
+  return TRADE_CLASSES[r.tradeProgress] || 'b-trade-error';
+}}
 
 function renderTable(){{
   const dv=daySel.value, av=accSel.value, mv=markSel.value, bv=document.getElementById('fBid').value,
@@ -224,7 +234,8 @@ function renderTable(){{
     if(bv==="なし" && r.bids>0) return false;
     if(sv && r.status!==sv) return false;
     if(srcv && r.source!==srcv) return false;
-    if(tv && r.tradeProgress!==tv) return false;
+    if(tv==="ERROR" && !(r.tradeProgress && !TRADE_LABELS[r.tradeProgress])) return false;
+    if(tv && tv!=="ERROR" && r.tradeProgress!==tv) return false;
     if(q && !(r.name.includes(q)||r.id.includes(q))) return false;
     return true;
   }});
@@ -233,7 +244,7 @@ function renderTable(){{
     const rowClass = r.bids<=0 ? 'row-nobid' : (r.day===LATEST_DAY ? 'row-new' : '');
     return `
     <tr class="${{rowClass}}">
-      <td>${{r.day}}</td>
+      <td>${{r.day||'-'}}</td>
       <td><span class="badge ${{accBadgeClass(r.account)}}">${{r.account}}</span></td>
       <td><span class="badge b-mark">${{r.mark}}</span></td>
       <td class="idcell"><a href="https://auctions.yahoo.co.jp/jp/auction/${{r.id}}" target="_blank">${{r.id}}</a></td>
