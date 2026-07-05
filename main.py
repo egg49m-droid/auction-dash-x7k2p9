@@ -11,9 +11,14 @@ sys.path.insert(0, str(ROOT))
 
 from src import db, dashboard, scraper, sheets_sync
 from src.dateutil_local import normalize_date
+from src.scraper import JST
 
 DATE_LINE_RE = re.compile(r"^#\s*(\d{4}/\d{1,2}/\d{1,2})")
 URL_RE = re.compile(r"https://auctions\.yahoo\.co\.jp/\S+")
+
+
+def now_jst() -> datetime:
+    return datetime.now(JST)
 
 
 def load_json(path: Path) -> dict:
@@ -22,7 +27,7 @@ def load_json(path: Path) -> dict:
 
 def parse_input_file(path: Path) -> list[tuple[str, str]]:
     """Returns list of (listed_date, url). '# YYYY/M/D' lines set the date for following URLs."""
-    current_date = datetime.now().strftime("%Y/%m/%d")
+    current_date = now_jst().strftime("%Y/%m/%d")
     result = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -83,7 +88,7 @@ def cmd_add(args):
             "status": r["status"],
             "final_price": r["final_price"],
             "listed_date": listed_date,
-            "last_checked_at": datetime.now().strftime("%Y/%m/%d %H:%M"),
+            "last_checked_at": now_jst().strftime("%Y/%m/%d %H:%M"),
             "note": None,
             "source": "manual",
         })
@@ -93,7 +98,7 @@ def cmd_add(args):
 
     processed_dir = ROOT / "input" / "processed"
     processed_dir.mkdir(exist_ok=True)
-    archive_name = f"new_urls_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    archive_name = f"new_urls_{now_jst().strftime('%Y%m%d_%H%M%S')}.txt"
     shutil.move(str(input_path), str(processed_dir / archive_name))
     input_path.write_text("", encoding="utf-8")
 
@@ -135,7 +140,7 @@ def _discover(settings: dict, accounts: dict) -> set:
             db.upsert_listing(conn, {
                 **row,
                 "account_name": account_name,
-                "last_checked_at": datetime.now().strftime("%Y/%m/%d %H:%M"),
+                "last_checked_at": now_jst().strftime("%Y/%m/%d %H:%M"),
                 "note": None,
                 "source": source,
             })
@@ -192,7 +197,7 @@ def _recheck(settings: dict, accounts: dict, skip_ids: set = frozenset()):
             "status": r["status"],
             "final_price": r["final_price"],
             "listed_date": row["listed_date"],
-            "last_checked_at": datetime.now().strftime("%Y/%m/%d %H:%M"),
+            "last_checked_at": now_jst().strftime("%Y/%m/%d %H:%M"),
             "note": row["note"],
             "source": row["source"],
         })
@@ -239,7 +244,7 @@ def cmd_trade(args):
     account_name = accounts.get(surpass_seller_id, "surpass")
 
     conn = db.connect()
-    now = datetime.now().strftime("%Y/%m/%d %H:%M")
+    now = now_jst().strftime("%Y/%m/%d %H:%M")
     progress_counts = {}
     for r in rows:
         db.upsert_trade_status(conn, {

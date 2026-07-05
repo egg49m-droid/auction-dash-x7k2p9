@@ -1,10 +1,12 @@
 import hashlib
 import html
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from src.scraper import extract_staff_mark
+
+JST = timezone(timedelta(hours=9))
 
 GATE_TEMPLATE = """<!DOCTYPE html>
 <html lang="ja">
@@ -278,7 +280,7 @@ def render_html(rows) -> str:
     data = [_row_to_data(r) for r in rows]
     latest_day = max((d["day"] for d in data if d["day"]), default="")
     return TEMPLATE.format(
-        generated_at=datetime.now().strftime("%Y/%m/%d %H:%M"),
+        generated_at=datetime.now(JST).strftime("%Y/%m/%d %H:%M"),
         total=len(data),
         data_json=json.dumps(data, ensure_ascii=False),
         acc_class_json=json.dumps(ACC_CLASS, ensure_ascii=False),
