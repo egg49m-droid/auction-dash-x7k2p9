@@ -30,6 +30,11 @@ def parse_auction_html(html: str) -> dict:
     if end_time_raw:
         end_dt = datetime.fromisoformat(end_time_raw).astimezone(JST)
 
+    start_time_raw = detail.get("startTime")
+    start_dt = None
+    if start_time_raw:
+        start_dt = datetime.fromisoformat(start_time_raw).astimezone(JST)
+
     status_raw = detail.get("status")
     status = "出品中" if status_raw == "open" else "終了"
 
@@ -43,6 +48,7 @@ def parse_auction_html(html: str) -> dict:
         "bid_count": bid_count,
         "has_bid": "あり" if bid_count > 0 else "なし",
         "end_datetime": end_dt.strftime("%Y/%m/%d %H:%M") if end_dt else None,
+        "listed_date": start_dt.strftime("%Y/%m/%d") if start_dt else None,
         "status": status,
         "final_price": detail.get("winPrice"),
         "seller_id": seller.get("aucUserId"),

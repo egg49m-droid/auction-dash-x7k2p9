@@ -1,7 +1,9 @@
 import asyncio
 import json
+import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -223,6 +225,34 @@ def cmd_sync(args):
     sheets_sync.sync(rows, settings, ROOT)
 
 
+def _backfill_listed_dates(settings: dict):
+    """出品日(listed_date)が空の行を、個別ページ(公開・匿名アクセス)から再取得して埋める。"""
+    conn = db.connect()
+    rows = db.get_missing_listed_date(conn)
+    if not rows:
+        conn.close()
+        return 0
+    urls = [row["url"] for row in rows]
+    results = asyncio.run(scraper.fetch_many(urls, settings))
+    results_by_url = {r["url"]: r for r in results}
+    filled = 0
+    for row in rows:
+        r = results_by_url.get(row["url"], {})
+        if r.get("error") or not r.get("listed_date"):
+            continue
+        db.update_listed_date(conn, row["auction_id"], r["listed_date"])
+        filled += 1
+    conn.commit()
+    conn.close()
+    return filled
+
+
+def cmd_backfill_dates(args):
+    settings = load_json(ROOT / "config" / "settings.json")
+    filled = _backfill_listed_dates(settings)
+    print(f"出品日を{filled}件補完しました。")
+
+
 def cmd_trade(args):
     """ログイン中の出品者(取引ナビ)から、落札後の入金/発送/受け取り状況を取得する。cookies.txtが必要。"""
     settings = load_json(ROOT / "config" / "settings.json")
@@ -279,6 +309,38 @@ def cmd_dashboard(args):
     dashboard.render(rows, ROOT / "output" / "dashboard.html")
 
 
+def cmd_push_snapshot(args):
+    """ローカルDBの内容(買い手ID等は除く)をクラウドリポジトリに同期し、即座にクラウド版を再生成させる。
+    クラウド(GitHub Actions)環境ではローカルより情報が少ないため、誤って上書きしないようスキップする。
+    """
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return
+    conn = db.connect()
+    rows = db.get_all(conn)
+    conn.close()
+
+    snapshot_path = ROOT / "data" / "local_snapshot.json"
+    snapshot = [db.to_snapshot_dict(r) for r in rows]
+    snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    diff = subprocess.run(["git", "status", "--porcelain", "--", str(snapshot_path)],
+                          cwd=ROOT, capture_output=True, text=True)
+    if not diff.stdout.strip():
+        print("スナップショットに変更がないためpushをスキップします。")
+        return
+
+    subprocess.run(["git", "add", "data/local_snapshot.json"], cwd=ROOT, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", f"Update local snapshot ({now_jst().strftime('%Y-%m-%d %H:%M')} JST)"],
+                    cwd=ROOT, check=True)
+    subprocess.run(["git", "push"], cwd=ROOT, check=True)
+    print(f"ローカルスナップショット({len(snapshot)}件)をリポジトリにpushしました。")
+
+    gh_path = ROOT / "bin" / "gh"
+    if gh_path.exists():
+        subprocess.run([str(gh_path), "workflow", "run", "scrape.yml"], cwd=ROOT, check=False)
+        print("クラウド側の再生成をトリガーしました。")
+
+
 def _print_summary():
     conn = db.connect()
     rows = db.get_all(conn)
@@ -308,21 +370,36 @@ def cmd_all(args):
     except Exception as e:
         print(f"[警告] Sheets同期をスキップしました: {e}")
     cmd_dashboard(args)
+    try:
+        cmd_push_snapshot(args)
+    except Exception as e:
+        print(f"[警告] クラウドへのスナップショットpushをスキップしました: {e}")
     _print_summary()
 
 
 def cmd_all_trade(args):
-    """取引ステータス専用の自動実行: trade→sync→dashboard。数時間おきの専用スケジュールから呼ばれる。"""
+    """取引ステータス専用の自動実行: trade→出品日補完→sync→dashboard。数時間おきの専用スケジュールから呼ばれる。"""
     try:
         cmd_trade(args)
     except Exception as e:
         print(f"[警告] 取引ステータス取得をスキップしました: {e}")
         return
     try:
+        settings = load_json(ROOT / "config" / "settings.json")
+        filled = _backfill_listed_dates(settings)
+        if filled:
+            print(f"出品日を{filled}件補完しました。")
+    except Exception as e:
+        print(f"[警告] 出品日の補完をスキップしました: {e}")
+    try:
         cmd_sync(args)
     except Exception as e:
         print(f"[警告] Sheets同期をスキップしました: {e}")
     cmd_dashboard(args)
+    try:
+        cmd_push_snapshot(args)
+    except Exception as e:
+        print(f"[警告] クラウドへのスナップショットpushをスキップしました: {e}")
 
 
 COMMANDS = {
@@ -330,8 +407,10 @@ COMMANDS = {
     "discover": cmd_discover,
     "recheck": cmd_recheck,
     "trade": cmd_trade,
+    "backfill_dates": cmd_backfill_dates,
     "sync": cmd_sync,
     "dashboard": cmd_dashboard,
+    "push_snapshot": cmd_push_snapshot,
     "all": cmd_all,
     "all_trade": cmd_all_trade,
 }

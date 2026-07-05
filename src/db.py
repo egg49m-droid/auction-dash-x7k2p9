@@ -91,6 +91,40 @@ def get_all(conn):
     return conn.execute("SELECT * FROM listings ORDER BY listed_date, account_name").fetchall()
 
 
+SNAPSHOT_COLUMNS = [
+    "auction_id", "url", "account_name", "title",
+    "start_price", "current_price", "bid_count", "has_bid",
+    "end_datetime", "status", "final_price", "listed_date",
+    "source", "trade_progress", "trade_message",
+]
+
+
+def to_snapshot_dict(row) -> dict:
+    """ローカルDBの行から、公開リポジトリに同期しても問題ない項目だけを抜き出す(買い手ID等は含めない)。"""
+    return {c: row[c] for c in SNAPSHOT_COLUMNS}
+
+
+def upsert_snapshot(conn, row: dict):
+    """他環境(クラウド)から取り込んだsnapshotをマージする。account_name以外はexcludedで上書きする。"""
+    columns = SNAPSHOT_COLUMNS
+    update_columns = [c for c in columns if c not in ("auction_id", "account_name")]
+    update_clause = ", ".join(f"{c}=excluded.{c}" for c in update_columns)
+    sql = f"""
+        INSERT INTO listings ({", ".join(columns)})
+        VALUES ({", ".join("?" for _ in columns)})
+        ON CONFLICT(auction_id) DO UPDATE SET {update_clause}
+    """
+    conn.execute(sql, [row.get(c) for c in columns])
+
+
+def get_missing_listed_date(conn):
+    return conn.execute("SELECT * FROM listings WHERE listed_date IS NULL OR listed_date = ''").fetchall()
+
+
+def update_listed_date(conn, auction_id: str, listed_date: str):
+    conn.execute("UPDATE listings SET listed_date = ? WHERE auction_id = ?", (listed_date, auction_id))
+
+
 def get_active(conn):
     return conn.execute("SELECT * FROM listings WHERE status = '出品中'").fetchall()
 

@@ -48,6 +48,9 @@ jobs:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
         run: python3 .github/scripts/write_config.py
 
+      - name: Merge local snapshot (trade status / listing dates from Mac)
+        run: python3 .github/scripts/merge_local_snapshot.py
+
       - name: Run discover + recheck + sync + dashboard
         run: python3 main.py all
 
