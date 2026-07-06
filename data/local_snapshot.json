@@ -302,7 +302,7 @@
   "final_price": null,
   "listed_date": "2026/05/25",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -642,7 +642,7 @@
   "final_price": null,
   "listed_date": "2026/05/31",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -727,7 +727,7 @@
   "final_price": null,
   "listed_date": "2026/06/01",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -1152,7 +1152,7 @@
   "final_price": null,
   "listed_date": "2026/06/06",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -1968,7 +1968,7 @@
   "final_price": null,
   "listed_date": "2026/06/11",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -2444,7 +2444,7 @@
   "final_price": null,
   "listed_date": "2026/06/12",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -2461,7 +2461,7 @@
   "final_price": null,
   "listed_date": "2026/06/12",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -2886,7 +2886,7 @@
   "final_price": null,
   "listed_date": "2026/06/13",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -2903,7 +2903,7 @@
   "final_price": null,
   "listed_date": "2026/06/13",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -3107,7 +3107,7 @@
   "final_price": null,
   "listed_date": "2026/06/14",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -3617,7 +3617,7 @@
   "final_price": null,
   "listed_date": "2026/06/15",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -3634,7 +3634,7 @@
   "final_price": null,
   "listed_date": "2026/06/15",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -3651,7 +3651,7 @@
   "final_price": null,
   "listed_date": "2026/06/15",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -3719,7 +3719,7 @@
   "final_price": null,
   "listed_date": "2026/06/16",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -5130,7 +5130,7 @@
   "final_price": null,
   "listed_date": "2026/06/26",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
@@ -7918,7 +7918,7 @@
   "final_price": null,
   "listed_date": "2026/07/05",
   "source": "auto",
-  "trade_progress": null,
+  "trade_progress": "NO_WINNER",
   "trade_message": null
  },
  {
