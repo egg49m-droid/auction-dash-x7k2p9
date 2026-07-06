@@ -356,6 +356,7 @@ def _row_to_data(row) -> dict:
 
 def render_html(rows) -> str:
     data = [_row_to_data(r) for r in rows]
+    data.sort(key=lambda d: (d["day"] or "", d["end"] or ""), reverse=True)  # 新しい出品日が上に来るようにする
     latest_day = max((d["day"] for d in data if d["day"]), default="")
     return TEMPLATE.format(
         generated_at=datetime.now(JST).strftime("%Y/%m/%d %H:%M"),
