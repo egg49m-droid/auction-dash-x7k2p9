@@ -195,7 +195,7 @@ def _unsold_item_to_row(item: dict) -> dict:
         "final_price": None,
         "end_datetime": end_dt.strftime("%Y/%m/%d %H:%M") if end_dt else None,
         "end_date": end_dt.date() if end_dt else None,
-        "trade_progress": None,
+        "trade_progress": "NO_WINNER",
         "trade_message": None,
         "buyer_id": None,
         "contact_url": None,

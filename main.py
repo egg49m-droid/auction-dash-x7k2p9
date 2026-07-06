@@ -5,7 +5,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -261,6 +261,64 @@ def cmd_backfill_dates(args):
     print(f"出品日・現在価格・入札件数を{filled}件補完しました。")
 
 
+# 取引状況ごとの「これ以上変化しないとみなすまでの安定日数」。SHIPPINGは対象外
+# (14日ルールで自動着金に昇格させるため、_auto_complete_stale_shippingで別途処理する)。
+STABILITY_DAYS = {
+    "NO_WINNER": 1,
+    "COMPLETE": 2,
+}
+
+
+def _auto_complete_stale_shipping(settings: dict, account_name: str) -> int:
+    """発送済み(SHIPPING)のまま14日経過した行は、Yahoo側の自動着金ルールに合わせてCOMPLETEに昇格させる。"""
+    auto_complete_days = settings.get("trade_auto_complete_shipping_days", 14)
+    now = now_jst()
+    cutoff = (now - timedelta(days=auto_complete_days)).strftime("%Y/%m/%d %H:%M")
+    conn = db.connect()
+    rows = db.get_stale_shipping_rows(conn, cutoff)
+    for r in rows:
+        db.auto_complete_stale_shipping(conn, r["auction_id"], now.strftime("%Y/%m/%d %H:%M"))
+    conn.commit()
+    conn.close()
+    return len(rows)
+
+
+def _compute_effective_trade_since(settings: dict, account_name: str) -> date:
+    """安定済み(NO_WINNER=1日/COMPLETE=2日、変化なし)の行は「確定済み」とみなし、再取得対象から自然に
+    外れるよう問い合わせ開始日を動的に手前へ寄せる（安全のため直近3日分は必ず含める）。
+    """
+    floor_since = date.fromisoformat(settings.get("trade_since", "2026-06-01"))
+    safety_days = 3
+    now = now_jst()
+    safety_floor = (now - timedelta(days=safety_days)).date()
+
+    conn = db.connect()
+    rows = db.get_trade_tracked_rows(conn, account_name)
+    conn.close()
+
+    oldest_unstable = None
+    for r in rows:
+        try:
+            end_date = datetime.strptime(r["end_datetime"][:10], "%Y/%m/%d").date()
+        except (ValueError, TypeError):
+            continue
+        if end_date < floor_since:
+            continue
+        stable_days = STABILITY_DAYS.get(r["trade_progress"])
+        is_stable = False
+        if stable_days is not None and r["status_since"]:
+            try:
+                since_date = datetime.strptime(r["status_since"][:10], "%Y/%m/%d").date()
+                is_stable = since_date <= (now - timedelta(days=stable_days)).date()
+            except ValueError:
+                pass
+        if not is_stable and (oldest_unstable is None or end_date < oldest_unstable):
+            oldest_unstable = end_date
+
+    candidate = min(oldest_unstable, safety_floor) if oldest_unstable else safety_floor
+    return max(floor_since, candidate)
+
+
 def cmd_trade(args):
     """ログイン中の出品者(取引ナビ)から、落札後の入金/発送/受け取り状況を取得する。cookies.txtが必要。"""
     settings = load_json(ROOT / "config" / "settings.json")
@@ -271,20 +329,32 @@ def cmd_trade(args):
         return
 
     since_str = settings.get("trade_since", "2026-06-01")
-    since = date.fromisoformat(since_str)
+    surpass_seller_id = "8vYc4d8q5Sa3THmNAC8FZhbU4P8jW"
+    account_name = accounts.get(surpass_seller_id, "surpass")
 
-    rows = asyncio.run(scraper.fetch_won_items(cookies_path, settings, since))
+    auto_completed = _auto_complete_stale_shipping(settings, account_name)
+    if auto_completed:
+        print(f"発送後14日経過で自動着金扱いにした件数: {auto_completed}件")
+
+    effective_since = _compute_effective_trade_since(settings, account_name)
+    if effective_since > date.fromisoformat(since_str):
+        print(f"安定済み(未落札1日/着金2日、変化なし)の行はスキップし、{effective_since}以降のみ再取得します。")
+
+    rows = asyncio.run(scraper.fetch_won_items(cookies_path, settings, effective_since))
     if not rows:
         print("取引データが取得できませんでした(cookieの期限切れの可能性があります)。")
         return
 
-    surpass_seller_id = "8vYc4d8q5Sa3THmNAC8FZhbU4P8jW"
-    account_name = accounts.get(surpass_seller_id, "surpass")
-
     conn = db.connect()
     now = now_jst().strftime("%Y/%m/%d %H:%M")
+    progress_map = db.get_trade_progress_map(conn, account_name)
     progress_counts = {}
     for r in rows:
+        prev = progress_map.get(r["auction_id"])
+        if prev is None or prev["trade_progress"] != r["trade_progress"]:
+            status_since = now
+        else:
+            status_since = prev["status_since"] or now
         db.upsert_trade_status(conn, {
             "auction_id": r["auction_id"],
             "url": r["url"],
@@ -300,18 +370,23 @@ def cmd_trade(args):
             "buyer_id": r["buyer_id"],
             "contact_url": r["contact_url"],
             "last_checked_at": now,
+            "status_since": status_since,
         })
         progress_counts[r["trade_progress"]] = progress_counts.get(r["trade_progress"], 0) + 1
     conn.commit()
     conn.close()
 
-    print(f"取引ステータスを{len(rows)}件更新しました({since_str}以降)")
+    print(f"取引ステータスを{len(rows)}件更新しました({effective_since}以降)")
     for progress, count in progress_counts.items():
         print(f"  - {progress}: {count}件")
 
+    since = date.fromisoformat(since_str)
     unsold_rows = asyncio.run(scraper.fetch_unsold_items(cookies_path, settings, since))
     conn = db.connect()
+    unsold_progress_map = db.get_trade_progress_map(conn, account_name)
     for r in unsold_rows:
+        prev = unsold_progress_map.get(r["auction_id"])
+        status_since = prev["status_since"] if (prev and prev["trade_progress"] == r["trade_progress"] and prev["status_since"]) else now
         db.upsert_trade_status(conn, {
             "auction_id": r["auction_id"],
             "url": r["url"],
@@ -322,11 +397,12 @@ def cmd_trade(args):
             "end_datetime": r["end_datetime"],
             "status": "終了",
             "source": "auto",
-            "trade_progress": None,
+            "trade_progress": r["trade_progress"],
             "trade_message": None,
             "buyer_id": None,
             "contact_url": None,
             "last_checked_at": now,
+            "status_since": status_since,
         })
     conn.commit()
     conn.close()

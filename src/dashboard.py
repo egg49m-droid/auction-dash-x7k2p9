@@ -183,15 +183,17 @@ function accBadgeClass(a){{ return ACC_CLASS[a] || 'acc-x'; }}
 const TRADE_TRACKED_ACCOUNTS = ['surpass']; // ログインで取引ナビ全件を把握できているアカウント
 function hasTradeCoverage(r){{ return TRADE_TRACKED_ACCOUNTS.includes(r.account); }}
 
+function hasRealTradeProgress(r){{ return !!r.tradeProgress && r.tradeProgress!=='NO_WINNER'; }}
+
 function isWon(r){{
   if(r.status==='出品中') return false;
-  if(hasTradeCoverage(r)) return !!r.tradeProgress; // 取引ナビに記録がなければ入札があっても未落札扱い
-  return !!r.tradeProgress || r.bids>0;
+  if(hasTradeCoverage(r)) return hasRealTradeProgress(r); // 取引ナビに記録がなければ入札があっても未落札扱い
+  return hasRealTradeProgress(r) || r.bids>0;
 }}
 
 function effectiveBids(r){{
   // 取引ナビで落札者なしと確認できたのに入札件数が残っている(いたずら入札等で取り消された)行は0扱いにする
-  if(r.status!=='出品中' && hasTradeCoverage(r) && !r.tradeProgress) return 0;
+  if(r.status!=='出品中' && hasTradeCoverage(r) && !hasRealTradeProgress(r)) return 0;
   return r.bids;
 }}
 
@@ -255,6 +257,7 @@ function tradeClass(r){{
 }}
 function combinedStatusLabel(r){{
   if(r.status==='出品中') return '出品中';
+  if(r.tradeProgress==='NO_WINNER') return '未落札';
   if(r.tradeProgress) return tradeLabel(r);
   if(hasTradeCoverage(r)) return '未落札'; // 取引ナビに記録なし＝入札があっても実際は未落札
   if(r.bids<=0) return '未落札';
@@ -262,6 +265,7 @@ function combinedStatusLabel(r){{
 }}
 function combinedStatusClass(r){{
   if(r.status==='出品中') return 'b-active';
+  if(r.tradeProgress==='NO_WINNER') return 'b-nashi';
   if(r.tradeProgress) return tradeClass(r);
   if(hasTradeCoverage(r)) return 'b-nashi';
   if(r.bids<=0) return 'b-nashi';
@@ -272,9 +276,9 @@ function matchesStateFilter(r, val){{
   if(!val) return true;
   const ended = r.status!=='出品中';
   if(val==='ACTIVE') return r.status==='出品中';
-  if(val==='NO_BID') return ended && !r.tradeProgress && (hasTradeCoverage(r) || r.bids<=0);
+  if(val==='NO_BID') return ended && (r.tradeProgress==='NO_WINNER' || (!r.tradeProgress && (hasTradeCoverage(r) || r.bids<=0)));
   if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress && !hasTradeCoverage(r);
-  if(val==='ERROR') return ended && r.tradeProgress && !TRADE_LABELS[r.tradeProgress];
+  if(val==='ERROR') return ended && hasRealTradeProgress(r) && !TRADE_LABELS[r.tradeProgress];
   return ended && r.tradeProgress===val;
 }}
 

@@ -28,12 +28,14 @@ CREATE TABLE IF NOT EXISTS listings (
     recipient_name    TEXT,
     recipient_address TEXT,
     shipping_method   TEXT,
-    tracking_number   TEXT
+    tracking_number   TEXT,
+    status_since      TEXT
 );
 """
 
 TRADE_COLUMNS = ["trade_progress", "trade_message", "buyer_id", "contact_url"]
 SHIPPING_COLUMNS = ["recipient_name", "recipient_address", "shipping_method", "tracking_number"]
+STATUS_TRACKING_COLUMNS = ["status_since"]
 
 
 def connect():
@@ -44,10 +46,43 @@ def connect():
     existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(listings)")}
     if "source" not in existing_columns:
         conn.execute("ALTER TABLE listings ADD COLUMN source TEXT DEFAULT 'manual'")
-    for col in TRADE_COLUMNS + SHIPPING_COLUMNS:
+    for col in TRADE_COLUMNS + SHIPPING_COLUMNS + STATUS_TRACKING_COLUMNS:
         if col not in existing_columns:
             conn.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT")
     return conn
+
+
+def get_trade_tracked_rows(conn, account_name: str):
+    """取引ステータス安定度の判定に必要な最小限のカラムだけを取得する(効率化計算用)。"""
+    return conn.execute(
+        "SELECT auction_id, end_datetime, trade_progress, status_since FROM listings "
+        "WHERE account_name = ? AND end_datetime IS NOT NULL",
+        (account_name,),
+    ).fetchall()
+
+
+def get_trade_progress_map(conn, account_name: str) -> dict:
+    """auction_id -> {trade_progress, status_since}。取引状況が変化したかどうかの判定に使う。"""
+    rows = conn.execute(
+        "SELECT auction_id, trade_progress, status_since FROM listings WHERE account_name = ?",
+        (account_name,),
+    ).fetchall()
+    return {r["auction_id"]: {"trade_progress": r["trade_progress"], "status_since": r["status_since"]} for r in rows}
+
+
+def get_stale_shipping_rows(conn, cutoff: str):
+    """発送済み(SHIPPING)のまま status_since が cutoff より前の行(＝14日ルールで自動着金される想定)。"""
+    return conn.execute(
+        "SELECT * FROM listings WHERE trade_progress = 'SHIPPING' AND status_since IS NOT NULL AND status_since <= ?",
+        (cutoff,),
+    ).fetchall()
+
+
+def auto_complete_stale_shipping(conn, auction_id: str, now: str):
+    conn.execute(
+        "UPDATE listings SET trade_progress = 'COMPLETE', trade_message = ?, status_since = ? WHERE auction_id = ?",
+        ("自動着金(発送後14日経過・受け取り連絡なし)", now, auction_id),
+    )
 
 
 def update_shipping_info(conn, auction_id: str, info: dict):
@@ -74,11 +109,12 @@ def upsert_trade_status(conn, row: dict):
         "auction_id", "url", "account_name", "seller_id", "title",
         "final_price", "end_datetime", "status", "source",
         "trade_progress", "trade_message", "buyer_id", "contact_url",
-        "last_checked_at",
+        "last_checked_at", "status_since",
     ]
     update_columns = [
         "url", "title", "final_price", "end_datetime", "status",
         "trade_progress", "trade_message", "buyer_id", "contact_url", "last_checked_at",
+        "status_since",
     ]
     update_clause = ", ".join(f"{c}=excluded.{c}" for c in update_columns)
     sql = f"""

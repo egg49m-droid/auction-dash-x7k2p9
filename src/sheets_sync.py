@@ -35,9 +35,15 @@ def _has_trade_coverage(row) -> bool:
     return row["account_name"] in TRADE_TRACKED_ACCOUNTS
 
 
+def _has_real_trade_progress(row) -> bool:
+    return bool(row["trade_progress"]) and row["trade_progress"] != "NO_WINNER"
+
+
 def _combined_status(row) -> str:
     if row["status"] == "出品中":
         return "出品中"
+    if row["trade_progress"] == "NO_WINNER":
+        return "未落札"
     trade_progress = row["trade_progress"]
     if trade_progress:
         return TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
@@ -49,7 +55,7 @@ def _combined_status(row) -> str:
 
 
 def _effective_bid_count(row):
-    if row["status"] != "出品中" and _has_trade_coverage(row) and not row["trade_progress"]:
+    if row["status"] != "出品中" and _has_trade_coverage(row) and not _has_real_trade_progress(row):
         return 0
     return row["bid_count"]
 

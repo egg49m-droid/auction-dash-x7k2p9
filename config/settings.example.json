@@ -9,5 +9,6 @@
   "yahoo_cookies_path": "/Users/YOUR_USER/.yahoo_auction_secrets/cookies.txt",
   "request_concurrency": 5,
   "request_timeout_seconds": 15,
-  "user_agent": "Mozilla/5.0 (compatible; yahoo-auction-tracker/1.0; personal-use-script)"
+  "user_agent": "Mozilla/5.0 (compatible; yahoo-auction-tracker/1.0; personal-use-script)",
+  "trade_auto_complete_shipping_days": 14
 }
