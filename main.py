@@ -372,6 +372,8 @@ def cmd_trade(args):
             "last_checked_at": now,
             "status_since": status_since,
         })
+        if r["trade_progress"] == "COMPLETE":
+            db.clear_recipient_info(conn, r["auction_id"])
         progress_counts[r["trade_progress"]] = progress_counts.get(r["trade_progress"], 0) + 1
     conn.commit()
     conn.close()

@@ -83,6 +83,15 @@ def auto_complete_stale_shipping(conn, auction_id: str, now: str):
         "UPDATE listings SET trade_progress = 'COMPLETE', trade_message = ?, status_since = ? WHERE auction_id = ?",
         ("自動着金(発送後14日経過・受け取り連絡なし)", now, auction_id),
     )
+    clear_recipient_info(conn, auction_id)
+
+
+def clear_recipient_info(conn, auction_id: str):
+    """着金確定後は不要になったお届け先氏名・住所を消去する(追跡番号・配送方法は記録として残す)。"""
+    conn.execute(
+        "UPDATE listings SET recipient_name = NULL, recipient_address = NULL WHERE auction_id = ?",
+        (auction_id,),
+    )
 
 
 def update_shipping_info(conn, auction_id: str, info: dict):
