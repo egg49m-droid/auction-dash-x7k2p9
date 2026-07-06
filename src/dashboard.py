@@ -204,9 +204,8 @@ function renderCards(rows, monthFilter){{
   const bidRate = total? ((withBid/total)*100).toFixed(1):"0.0";
   const totalBids = rows.reduce((a,r)=>a+effectiveBids(r),0);
   const avgBids = total? (totalBids/total).toFixed(2):"0.00";
-  const ended = rows.filter(r=>r.status==="終了");
   const won = rows.filter(isWon);
-  const winRate = ended.length? ((won.length/ended.length)*100).toFixed(1):"0.0";
+  const winRate = total? ((won.length/total)*100).toFixed(1):"0.0"; // 母数は全出品数(出品中含む)
   const settled = rows.filter(r=>r.tradeProgress==='COMPLETE');
   const settledTotal = settled.reduce((a,r)=>a+(r.final||0),0);
 
