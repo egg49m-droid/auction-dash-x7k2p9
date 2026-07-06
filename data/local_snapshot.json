@@ -4416,8 +4416,8 @@
   "final_price": 6260,
   "listed_date": "2026/06/25",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "1234839879",
@@ -4518,8 +4518,8 @@
   "final_price": 1480,
   "listed_date": "2026/06/25",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "f1234805613",
@@ -4620,8 +4620,8 @@
   "final_price": 500,
   "listed_date": "2026/06/25",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "t1234826007",
@@ -4773,8 +4773,8 @@
   "final_price": 1900,
   "listed_date": "2026/06/25",
   "source": "auto",
-  "trade_progress": "PREPARATION_FOR_SHIPMENT",
-  "trade_message": "発送をしてください"
+  "trade_progress": "SHIPPING",
+  "trade_message": "発送完了しました"
  },
  {
   "auction_id": "b1234811995",
@@ -4994,8 +4994,8 @@
   "final_price": 2355,
   "listed_date": "2026/06/26",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "g1234993038",
@@ -5147,8 +5147,8 @@
   "final_price": 13111,
   "listed_date": "2026/06/27",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "SHIPPING",
+  "trade_message": "発送完了しました"
  },
  {
   "auction_id": "w1235093670",
@@ -5181,8 +5181,8 @@
   "final_price": 500,
   "listed_date": "2026/06/27",
   "source": "auto",
-  "trade_progress": "PREPARATION_FOR_SHIPMENT",
-  "trade_message": "発送をしてください"
+  "trade_progress": "SHIPPING",
+  "trade_message": "発送完了しました"
  },
  {
   "auction_id": "m1235187580",
@@ -5215,8 +5215,8 @@
   "final_price": 4200,
   "listed_date": "2026/06/28",
   "source": "auto",
-  "trade_progress": "PREPARATION_FOR_SHIPMENT",
-  "trade_message": "発送をしてください"
+  "trade_progress": "SHIPPING",
+  "trade_message": "発送完了しました"
  },
  {
   "auction_id": "n1235213598",
