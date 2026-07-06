@@ -215,7 +215,7 @@ function renderCards(rows, monthFilter){{
   `;
   document.getElementById('cards').innerHTML = `
     <div class="card"><div class="n warn">${{winRate}}%</div><div class="l">落札率</div></div>
-    <div class="card"><div class="n">${{won.length}}</div><div class="l">落札件数</div></div>
+    <div class="card"><div class="n">${{won.length}} <span style="font-size:13px;color:var(--sub);">/ ${{total}}件</span></div><div class="l">落札件数</div></div>
     <div class="card"><div class="n good">${{bidRate}}%</div><div class="l">入札率</div></div>
     <div class="card"><div class="n">${{avgBids}}</div><div class="l">平均入札回数</div></div>
   `;
@@ -224,14 +224,14 @@ function renderCards(rows, monthFilter){{
     const sub = monthScoped.filter(r=>r.account===a);
     const subSettled = sub.filter(r=>r.tradeProgress==='COMPLETE');
     const subTotal = subSettled.reduce((acc,r)=>acc+(r.final||0),0);
-    return `<div class="acard"><div class="an"><span class="badge ${{accBadgeClass(a)}}">${{a}}</span></div><div class="av">着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
+    return `<div class="acard"><div class="an"><span class="badge ${{accBadgeClass(a)}}">${{a}}</span></div><div class="av">出品${{sub.length}}件 ／ 着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
   }}).join('');
   const marks = [...new Set(DATA.map(d=>d.mark))].sort();
   document.getElementById('markCards').innerHTML = marks.map(m=>{{
     const sub = monthScoped.filter(r=>r.mark===m);
     const subSettled = sub.filter(r=>r.tradeProgress==='COMPLETE');
     const subTotal = subSettled.reduce((acc,r)=>acc+(r.final||0),0);
-    return `<div class="mcard"><div class="mn">${{m}}</div><div class="mv">着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
+    return `<div class="mcard"><div class="mn">${{m}}</div><div class="mv">出品${{sub.length}}件 ／ 着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
   }}).join('');
 }}
 
