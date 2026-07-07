@@ -30,14 +30,15 @@ CREATE TABLE IF NOT EXISTS listings (
     shipping_method   TEXT,
     tracking_number   TEXT,
     status_since      TEXT,
-    payment_deadline  TEXT
+    payment_deadline  TEXT,
+    payment_overdue   TEXT
 );
 """
 
 TRADE_COLUMNS = ["trade_progress", "trade_message", "buyer_id", "contact_url"]
 SHIPPING_COLUMNS = ["recipient_name", "recipient_address", "shipping_method", "tracking_number"]
 STATUS_TRACKING_COLUMNS = ["status_since"]
-DEADLINE_COLUMNS = ["payment_deadline"]
+DEADLINE_COLUMNS = ["payment_deadline", "payment_overdue"]
 
 
 def connect():
@@ -61,8 +62,11 @@ def get_address_inputing_rows(conn):
     ).fetchall()
 
 
-def update_payment_deadline(conn, auction_id: str, payment_deadline):
-    conn.execute("UPDATE listings SET payment_deadline = ? WHERE auction_id = ?", (payment_deadline, auction_id))
+def update_payment_deadline(conn, auction_id: str, payment_deadline, payment_overdue: bool = False):
+    conn.execute(
+        "UPDATE listings SET payment_deadline = ?, payment_overdue = ? WHERE auction_id = ?",
+        (payment_deadline, "1" if payment_overdue else None, auction_id),
+    )
 
 
 def get_trade_tracked_rows(conn, account_name: str):

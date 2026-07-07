@@ -145,7 +145,7 @@ TEMPLATE = """<!DOCTYPE html>
     <select id="fAcc"><option value="">全アカウント</option></select>
     <select id="fMark"><option value="">全記号（担当者）</option></select>
     <select id="fBid"><option value="">入札 全て</option><option value="あり">入札あり</option><option value="なし">入札なし</option></select>
-    <select id="fState"><option value="">ステータス 全て</option><option value="ACTIVE">出品中</option><option value="NO_BID">未落札</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option><option value="ENDED_UNKNOWN">終了(取引情報なし)</option></select>
+    <select id="fState"><option value="">ステータス 全て</option><option value="ACTIVE">出品中</option><option value="NO_BID">未落札</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PAYMENT_OVERDUE">入金期限切れ(要対応)</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option><option value="ENDED_UNKNOWN">終了(取引情報なし)</option></select>
     <input id="fSearch" placeholder="商品名/IDで検索..." />
   </div>
 
@@ -256,12 +256,14 @@ const TRADE_CLASSES = {{
 const TRADE_ERROR_LABEL = '取引状況を確認してください(要確認)';
 function tradeLabel(r){{
   if(!r.tradeProgress) return '-';
+  if(r.tradeProgress==='ADDRESS_INPUTING' && r.paymentOverdue) return '入金期限切れ(要対応・期日: '+(r.paymentDeadline||'-')+')';
   const base = TRADE_LABELS[r.tradeProgress] || TRADE_ERROR_LABEL;
   if(r.tradeProgress==='ADDRESS_INPUTING' && r.paymentDeadline) return base+'(期日: '+r.paymentDeadline+')';
   return base;
 }}
 function tradeClass(r){{
   if(!r.tradeProgress) return 'b-trade-none';
+  if(r.tradeProgress==='ADDRESS_INPUTING' && r.paymentOverdue) return 'b-trade-error';
   return TRADE_CLASSES[r.tradeProgress] || 'b-trade-error';
 }}
 function combinedStatusLabel(r){{
@@ -288,6 +290,8 @@ function matchesStateFilter(r, val){{
   if(val==='NO_BID') return ended && (r.tradeProgress==='NO_WINNER' || (!r.tradeProgress && (hasTradeCoverage(r) || r.bids<=0)));
   if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress && !hasTradeCoverage(r);
   if(val==='ERROR') return ended && hasRealTradeProgress(r) && !TRADE_LABELS[r.tradeProgress];
+  if(val==='PAYMENT_OVERDUE') return ended && r.tradeProgress==='ADDRESS_INPUTING' && r.paymentOverdue;
+  if(val==='ADDRESS_INPUTING') return ended && r.tradeProgress==='ADDRESS_INPUTING' && !r.paymentOverdue;
   return ended && r.tradeProgress===val;
 }}
 
@@ -362,6 +366,7 @@ def _row_to_data(row) -> dict:
         "recipientAddress": row["recipient_address"],
         "trackingNumber": row["tracking_number"],
         "paymentDeadline": row["payment_deadline"],
+        "paymentOverdue": bool(row["payment_overdue"]),
     }
 
 

@@ -271,21 +271,23 @@ def parse_contact_page(html: str) -> dict:
     return result
 
 
-def parse_payment_deadline(html: str):
-    """取引ナビの「かんたん決済支払期限」表示から、支払い期日(YYYY/MM/DD)を抽出する。"""
+def parse_payment_deadline(html: str) -> dict:
+    """取引ナビの「かんたん決済支払期限」表示から、支払い期日(YYYY/MM/DD)と期限切れかどうかを抽出する。"""
     soup = BeautifulSoup(html, "html.parser")
     el = soup.find("div", class_="PayDeadline__text")
     if not el:
-        return None
-    m = re.search(r"(\d{1,2})月(\d{1,2})日", el.get_text())
+        return {"payment_deadline": None, "payment_overdue": False}
+    text = el.get_text()
+    overdue = "期限切れ" in text or "PayDeadline__text--expiration" in " ".join(el.get("class", []))
+    m = re.search(r"(\d{1,2})月(\d{1,2})日", text)
     if not m:
-        return None
+        return {"payment_deadline": None, "payment_overdue": overdue}
     month, day = int(m.group(1)), int(m.group(2))
     today = datetime.now(JST).date()
     year = today.year
     if month < today.month - 6:  # 年またぎ(12月→1月など)の簡易対応
         year += 1
-    return f"{year}/{month:02d}/{day:02d}"
+    return {"payment_deadline": f"{year}/{month:02d}/{day:02d}", "payment_overdue": overdue}
 
 
 async def fetch_contact_info(client: httpx.AsyncClient, contact_url: str, semaphore: asyncio.Semaphore) -> dict:
@@ -296,7 +298,7 @@ async def fetch_contact_info(client: httpx.AsyncClient, contact_url: str, semaph
             return {
                 "contact_url": contact_url,
                 **parse_contact_page(resp.text),
-                "payment_deadline": parse_payment_deadline(resp.text),
+                **parse_payment_deadline(resp.text),
                 "error": None,
             }
         except Exception as e:

@@ -414,31 +414,34 @@ def cmd_trade(args):
     if filled:
         print(f"お届け先情報を{filled}件取得しました(ローカルDB・Sheetsのみ)。")
 
-    deadline_count = _refresh_payment_deadlines(settings, cookies_path)
+    deadline_count, overdue_count = _refresh_payment_deadlines(settings, cookies_path)
     if deadline_count:
-        print(f"入金待ちの支払い期日を{deadline_count}件更新しました。")
+        print(f"入金待ちの支払い期日を{deadline_count}件更新しました(うち期限切れ{overdue_count}件)。")
 
 
-def _refresh_payment_deadlines(settings: dict, cookies_path: str) -> int:
+def _refresh_payment_deadlines(settings: dict, cookies_path: str) -> tuple[int, int]:
     """入金待ち(ADDRESS_INPUTING)の支払い期日を毎回取り直す(日々変わるため都度再取得)。"""
     conn = db.connect()
     rows = db.get_address_inputing_rows(conn)
     if not rows:
         conn.close()
-        return 0
+        return 0, 0
     contact_urls = [r["contact_url"] for r in rows]
     results = asyncio.run(scraper.fetch_contact_info_many(cookies_path, settings, contact_urls))
     results_by_url = {r["contact_url"]: r for r in results}
-    updated = 0
+    updated, overdue = 0, 0
     for row in rows:
         r = results_by_url.get(row["contact_url"], {})
         if r.get("error"):
             continue
-        db.update_payment_deadline(conn, row["auction_id"], r.get("payment_deadline"))
+        is_overdue = r.get("payment_overdue", False)
+        db.update_payment_deadline(conn, row["auction_id"], r.get("payment_deadline"), is_overdue)
         updated += 1
+        if is_overdue:
+            overdue += 1
     conn.commit()
     conn.close()
-    return updated
+    return updated, overdue
 
 
 def _backfill_shipping_info(settings: dict, cookies_path: str) -> int:

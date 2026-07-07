@@ -46,6 +46,8 @@ def _combined_status(row) -> str:
         return "未落札"
     trade_progress = row["trade_progress"]
     if trade_progress:
+        if trade_progress == "ADDRESS_INPUTING" and row["payment_overdue"]:
+            return f"入金期限切れ(要対応・期日: {row['payment_deadline'] or '-'})"
         label = TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
         if trade_progress == "ADDRESS_INPUTING" and row["payment_deadline"]:
             label += f"(期日: {row['payment_deadline']})"
