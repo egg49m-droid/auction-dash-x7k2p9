@@ -29,13 +29,15 @@ CREATE TABLE IF NOT EXISTS listings (
     recipient_address TEXT,
     shipping_method   TEXT,
     tracking_number   TEXT,
-    status_since      TEXT
+    status_since      TEXT,
+    payment_deadline  TEXT
 );
 """
 
 TRADE_COLUMNS = ["trade_progress", "trade_message", "buyer_id", "contact_url"]
 SHIPPING_COLUMNS = ["recipient_name", "recipient_address", "shipping_method", "tracking_number"]
 STATUS_TRACKING_COLUMNS = ["status_since"]
+DEADLINE_COLUMNS = ["payment_deadline"]
 
 
 def connect():
@@ -46,10 +48,21 @@ def connect():
     existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(listings)")}
     if "source" not in existing_columns:
         conn.execute("ALTER TABLE listings ADD COLUMN source TEXT DEFAULT 'manual'")
-    for col in TRADE_COLUMNS + SHIPPING_COLUMNS + STATUS_TRACKING_COLUMNS:
+    for col in TRADE_COLUMNS + SHIPPING_COLUMNS + STATUS_TRACKING_COLUMNS + DEADLINE_COLUMNS:
         if col not in existing_columns:
             conn.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT")
     return conn
+
+
+def get_address_inputing_rows(conn):
+    """入金待ち(ADDRESS_INPUTING)の行。支払い期日を毎回再取得して最新化する対象。"""
+    return conn.execute(
+        "SELECT auction_id, contact_url FROM listings WHERE trade_progress = 'ADDRESS_INPUTING' AND contact_url IS NOT NULL"
+    ).fetchall()
+
+
+def update_payment_deadline(conn, auction_id: str, payment_deadline):
+    conn.execute("UPDATE listings SET payment_deadline = ? WHERE auction_id = ?", (payment_deadline, auction_id))
 
 
 def get_trade_tracked_rows(conn, account_name: str):

@@ -271,12 +271,34 @@ def parse_contact_page(html: str) -> dict:
     return result
 
 
+def parse_payment_deadline(html: str):
+    """取引ナビの「かんたん決済支払期限」表示から、支払い期日(YYYY/MM/DD)を抽出する。"""
+    soup = BeautifulSoup(html, "html.parser")
+    el = soup.find("div", class_="PayDeadline__text")
+    if not el:
+        return None
+    m = re.search(r"(\d{1,2})月(\d{1,2})日", el.get_text())
+    if not m:
+        return None
+    month, day = int(m.group(1)), int(m.group(2))
+    today = datetime.now(JST).date()
+    year = today.year
+    if month < today.month - 6:  # 年またぎ(12月→1月など)の簡易対応
+        year += 1
+    return f"{year}/{month:02d}/{day:02d}"
+
+
 async def fetch_contact_info(client: httpx.AsyncClient, contact_url: str, semaphore: asyncio.Semaphore) -> dict:
     async with semaphore:
         try:
             resp = await client.get(contact_url)
             resp.raise_for_status()
-            return {"contact_url": contact_url, **parse_contact_page(resp.text), "error": None}
+            return {
+                "contact_url": contact_url,
+                **parse_contact_page(resp.text),
+                "payment_deadline": parse_payment_deadline(resp.text),
+                "error": None,
+            }
         except Exception as e:
             return {"contact_url": contact_url, "error": str(e)}
 

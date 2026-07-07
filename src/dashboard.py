@@ -256,7 +256,9 @@ const TRADE_CLASSES = {{
 const TRADE_ERROR_LABEL = '取引状況を確認してください(要確認)';
 function tradeLabel(r){{
   if(!r.tradeProgress) return '-';
-  return TRADE_LABELS[r.tradeProgress] || TRADE_ERROR_LABEL;
+  const base = TRADE_LABELS[r.tradeProgress] || TRADE_ERROR_LABEL;
+  if(r.tradeProgress==='ADDRESS_INPUTING' && r.paymentDeadline) return base+'(期日: '+r.paymentDeadline+')';
+  return base;
 }}
 function tradeClass(r){{
   if(!r.tradeProgress) return 'b-trade-none';
@@ -359,6 +361,7 @@ def _row_to_data(row) -> dict:
         "recipientName": row["recipient_name"],
         "recipientAddress": row["recipient_address"],
         "trackingNumber": row["tracking_number"],
+        "paymentDeadline": row["payment_deadline"],
     }
 
 

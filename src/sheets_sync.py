@@ -46,7 +46,10 @@ def _combined_status(row) -> str:
         return "未落札"
     trade_progress = row["trade_progress"]
     if trade_progress:
-        return TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
+        label = TRADE_LABELS.get(trade_progress, TRADE_ERROR_LABEL)
+        if trade_progress == "ADDRESS_INPUTING" and row["payment_deadline"]:
+            label += f"(期日: {row['payment_deadline']})"
+        return label
     if _has_trade_coverage(row):
         return "未落札"  # 取引ナビに記録がない＝入札件数が残っていても実際は未落札
     if not (row["bid_count"] or 0) > 0:
