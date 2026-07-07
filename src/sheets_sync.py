@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import gspread
@@ -113,13 +114,24 @@ def _get_or_create_worksheet(sh, title: str, cols: int):
         return sh.add_worksheet(title=title, rows=1000, cols=cols)
 
 
-def sync(rows, settings: dict, project_root: Path):
-    creds = _get_credentials(settings, project_root)
-    gc = gspread.authorize(creds)
-    sh = gc.open_by_key(settings["spreadsheet_id"])
-    ws = _get_or_create_worksheet(sh, settings["sheet_name"], cols=len(HEADER))
-
+def sync(rows, settings: dict, project_root: Path, max_retries: int = 2):
     values = [HEADER] + [_row_to_values(r) for r in rows]
-    ws.clear()
-    ws.update(values, value_input_option="USER_ENTERED")
-    print(f"Google Sheetsへ{len(rows)}件を反映しました。")
+
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            creds = _get_credentials(settings, project_root)
+            gc = gspread.authorize(creds)
+            sh = gc.open_by_key(settings["spreadsheet_id"])
+            ws = _get_or_create_worksheet(sh, settings["sheet_name"], cols=len(HEADER))
+            ws.clear()
+            ws.update(values, value_input_option="USER_ENTERED")
+            print(f"Google Sheetsへ{len(rows)}件を反映しました。")
+            return
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries:
+                wait = 5 * (attempt + 1)
+                print(f"[警告] Sheets同期に失敗({e})。{wait}秒後にリトライします({attempt + 1}/{max_retries})。")
+                time.sleep(wait)
+    raise last_error
