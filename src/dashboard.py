@@ -145,7 +145,7 @@ TEMPLATE = """<!DOCTYPE html>
     <select id="fAcc"><option value="">全アカウント</option></select>
     <select id="fMark"><option value="">全記号（担当者）</option></select>
     <select id="fBid"><option value="">入札 全て</option><option value="あり">入札あり</option><option value="なし">入札なし</option></select>
-    <select id="fState"><option value="">ステータス 全て</option><option value="ACTIVE">出品中</option><option value="NO_BID">未落札</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PAYMENT_OVERDUE">入金期限切れ(要対応)</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option><option value="ENDED_UNKNOWN">終了(取引情報なし)</option></select>
+    <select id="fState"><option value="">ステータス 全て</option><option value="ACTIVE">出品中</option><option value="NO_BID">未落札</option><option value="MISTAKE">出品ミス(重複の疑い)</option><option value="ADDRESS_INPUTING">入金待ち</option><option value="PAYMENT_OVERDUE">入金期限切れ(要対応)</option><option value="PREPARATION_FOR_SHIPMENT">発送待ち(要対応)</option><option value="SHIPPING">受け取り待ち</option><option value="COMPLETE">着金済み</option><option value="ERROR">要確認(エラー)</option><option value="ENDED_UNKNOWN">終了(取引情報なし)</option></select>
     <input id="fSearch" placeholder="商品名/IDで検索..." />
   </div>
 
@@ -203,8 +203,20 @@ function effectiveBids(r){{
   return r.bids;
 }}
 
+function isMistakeListing(r){{
+  // 未落札のうち、出品日から1日以内に終了している商品は出品ミス(重複出品など)の疑いが強い
+  if(r.status==='出品中' || isWon(r)) return false;
+  if(!r.day || !r.end) return false;
+  const start = new Date(r.day.replace(/\//g,'-')+'T00:00:00');
+  const end = new Date(r.end.replace(/\//g,'-').replace(' ','T')+':00');
+  if(isNaN(start) || isNaN(end)) return false;
+  const days = (end-start)/86400000;
+  return days <= 1;
+}}
+
 function renderCards(rows, monthFilter){{
-  const monthScoped = monthFilter ? DATA.filter(d=>d.month===monthFilter) : DATA;
+  rows = rows.filter(r=>!isMistakeListing(r)); // 出品ミス(重複疑い)は出品数・各種KPIの母数から除外
+  const monthScoped = (monthFilter ? DATA.filter(d=>d.month===monthFilter) : DATA).filter(r=>!isMistakeListing(r));
   const total = rows.length;
   const withBid = rows.filter(r=>effectiveBids(r)>0).length;
   const bidRate = total? ((withBid/total)*100).toFixed(1):"0.0";
@@ -268,6 +280,7 @@ function tradeClass(r){{
 }}
 function combinedStatusLabel(r){{
   if(r.status==='出品中') return '出品中';
+  if(isMistakeListing(r)) return '出品ミス(重複の疑い・要確認)';
   if(r.tradeProgress==='NO_WINNER') return '未落札';
   if(r.tradeProgress) return tradeLabel(r);
   if(hasTradeCoverage(r)) return '未落札'; // 取引ナビに記録なし＝入札があっても実際は未落札
@@ -276,6 +289,7 @@ function combinedStatusLabel(r){{
 }}
 function combinedStatusClass(r){{
   if(r.status==='出品中') return 'b-active';
+  if(isMistakeListing(r)) return 'b-mark-error';
   if(r.tradeProgress==='NO_WINNER') return 'b-nashi';
   if(r.tradeProgress) return tradeClass(r);
   if(hasTradeCoverage(r)) return 'b-nashi';
@@ -287,7 +301,8 @@ function matchesStateFilter(r, val){{
   if(!val) return true;
   const ended = r.status!=='出品中';
   if(val==='ACTIVE') return r.status==='出品中';
-  if(val==='NO_BID') return ended && (r.tradeProgress==='NO_WINNER' || (!r.tradeProgress && (hasTradeCoverage(r) || r.bids<=0)));
+  if(val==='MISTAKE') return isMistakeListing(r);
+  if(val==='NO_BID') return ended && !isMistakeListing(r) && (r.tradeProgress==='NO_WINNER' || (!r.tradeProgress && (hasTradeCoverage(r) || r.bids<=0)));
   if(val==='ENDED_UNKNOWN') return ended && r.bids>0 && !r.tradeProgress && !hasTradeCoverage(r);
   if(val==='ERROR') return ended && hasRealTradeProgress(r) && !TRADE_LABELS[r.tradeProgress];
   if(val==='PAYMENT_OVERDUE') return ended && r.tradeProgress==='ADDRESS_INPUTING' && r.paymentOverdue;

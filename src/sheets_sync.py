@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from pathlib import Path
 
 import gspread
@@ -40,9 +41,33 @@ def _has_real_trade_progress(row) -> bool:
     return bool(row["trade_progress"]) and row["trade_progress"] != "NO_WINNER"
 
 
+def _is_won(row) -> bool:
+    if row["status"] == "出品中":
+        return False
+    if _has_trade_coverage(row):
+        return _has_real_trade_progress(row)
+    return _has_real_trade_progress(row) or (row["bid_count"] or 0) > 0
+
+
+def _is_mistake_listing(row) -> bool:
+    """未落札のうち、出品日から1日以内に終了している商品は出品ミス(重複出品など)の疑いが強い。"""
+    if row["status"] == "出品中" or _is_won(row):
+        return False
+    if not row["listed_date"] or not row["end_datetime"]:
+        return False
+    try:
+        start = datetime.strptime(row["listed_date"], "%Y/%m/%d")
+        end = datetime.strptime(row["end_datetime"][:10], "%Y/%m/%d")
+    except ValueError:
+        return False
+    return (end - start).days <= 1
+
+
 def _combined_status(row) -> str:
     if row["status"] == "出品中":
         return "出品中"
+    if _is_mistake_listing(row):
+        return "出品ミス(重複の疑い・要確認)"
     if row["trade_progress"] == "NO_WINNER":
         return "未落札"
     trade_progress = row["trade_progress"]
