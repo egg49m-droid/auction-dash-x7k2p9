@@ -120,12 +120,14 @@ def update_shipping_info(conn, auction_id: str, info: dict):
 
 
 def get_rows_needing_shipping_info(conn):
-    """発送完了/要確認ステータスで、まだお届け先情報が未取得の行。"""
+    """発送待ち/発送完了/要確認ステータスで、お届け先氏名(未取得)または追跡番号(発送済みなのに未取得)がある行。
+    発送待ちの段階で氏名・住所を先に取得し、発送完了の段階で追跡番号を追加取得する2段階構成。
+    """
     return conn.execute(
         """SELECT * FROM listings
            WHERE contact_url IS NOT NULL
-             AND tracking_number IS NULL
-             AND (trade_progress = 'SHIPPING' OR (trade_progress IS NOT NULL AND trade_progress NOT IN
+             AND (recipient_name IS NULL OR (trade_progress = 'SHIPPING' AND tracking_number IS NULL))
+             AND (trade_progress IN ('PREPARATION_FOR_SHIPMENT', 'SHIPPING') OR (trade_progress IS NOT NULL AND trade_progress NOT IN
                  ('ADDRESS_INPUTING', 'PREPARATION_FOR_SHIPMENT', 'SHIPPING', 'COMPLETE')))"""
     ).fetchall()
 

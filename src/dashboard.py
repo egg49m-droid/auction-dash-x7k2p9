@@ -257,12 +257,13 @@ function renderCards(rows, monthFilter){{
 
 const TRADE_LABELS = {{
   ADDRESS_INPUTING: '落札者からの連絡待ちです(入金待ち)',
+  MONEY_RECEIVED: '落札者からの入金待ちです(銀行振込等・要確認)',
   PREPARATION_FOR_SHIPMENT: '発送をしてください(発送待ち・要対応)',
   SHIPPING: '発送完了しました(受け取り待ち)',
   COMPLETE: '受け取り連絡がされました(着金)',
 }};
 const TRADE_CLASSES = {{
-  ADDRESS_INPUTING: 'b-trade-wait', PREPARATION_FOR_SHIPMENT: 'b-trade-ship',
+  ADDRESS_INPUTING: 'b-trade-wait', MONEY_RECEIVED: 'b-trade-wait', PREPARATION_FOR_SHIPMENT: 'b-trade-ship',
   SHIPPING: 'b-trade-shipped', COMPLETE: 'b-trade-complete',
 }};
 const TRADE_ERROR_LABEL = '取引状況を確認してください(要確認)';
