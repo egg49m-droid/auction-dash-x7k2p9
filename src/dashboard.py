@@ -106,6 +106,8 @@ TEMPLATE = """<!DOCTYPE html>
   .acc-c{{background:rgba(52,211,153,.15);color:var(--good);}}
   .acc-x{{background:rgba(248,113,113,.15);color:var(--bad);}}
   .b-mark{{background:rgba(139,152,179,.15);color:var(--text);font-size:13px;}}
+  .b-mark-error{{background:rgba(248,113,113,.3);color:#fff;font-weight:700;font-size:13px;}}
+  .mcard-error{{border-color:var(--bad)!important;}}
   .b-trade-wait{{background:rgba(248,113,113,.15);color:var(--bad);}}
   .b-trade-ship{{background:rgba(251,191,36,.15);color:var(--warn);}}
   .b-trade-shipped{{background:rgba(76,141,255,.15);color:var(--accent);}}
@@ -180,6 +182,10 @@ const markSel = document.getElementById('fMark');
 
 function accBadgeClass(a){{ return ACC_CLASS[a] || 'acc-x'; }}
 
+const VALID_MARKS = ['◎','$','φ','∞','■','□','▲','△','◆','◇','◯','●','☆','♪','＊'];
+function isValidMark(m){{ return VALID_MARKS.includes(m); }}
+function markBadgeClass(m){{ return isValidMark(m) ? 'b-mark' : 'b-mark-error'; }}
+
 const TRADE_TRACKED_ACCOUNTS = ['surpass']; // ログインで取引ナビ全件を把握できているアカウント
 function hasTradeCoverage(r){{ return TRADE_TRACKED_ACCOUNTS.includes(r.account); }}
 
@@ -231,7 +237,9 @@ function renderCards(rows, monthFilter){{
     const sub = monthScoped.filter(r=>r.mark===m);
     const subSettled = sub.filter(r=>r.tradeProgress==='COMPLETE');
     const subTotal = subSettled.reduce((acc,r)=>acc+(r.final||0),0);
-    return `<div class="mcard"><div class="mn">${{m}}</div><div class="mv">出品${{sub.length}}件 ／ 着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
+    const errClass = isValidMark(m) ? '' : 'mcard-error';
+    const errMark = isValidMark(m) ? '' : ' ⚠要確認';
+    return `<div class="mcard ${{errClass}}"><div class="mn">${{m}}${{errMark}}</div><div class="mv">出品${{sub.length}}件 ／ 着金${{subSettled.length}}件 ／ ¥${{subTotal.toLocaleString()}}</div></div>`;
   }}).join('');
 }}
 
@@ -303,7 +311,7 @@ function renderTable(){{
     <tr class="${{rowClass}}">
       <td>${{r.day||'-'}}</td>
       <td><span class="badge ${{accBadgeClass(r.account)}}">${{r.account}}</span></td>
-      <td><span class="badge b-mark">${{r.mark}}</span></td>
+      <td><span class="badge ${{markBadgeClass(r.mark)}}" title="${{isValidMark(r.mark)?'':'登録されていない記号です(要確認)'}}">${{r.mark}}${{isValidMark(r.mark)?'':' ⚠'}}</span></td>
       <td class="idcell"><a href="https://auctions.yahoo.co.jp/jp/auction/${{r.id}}" target="_blank">${{r.id}}</a></td>
       <td class="name">${{r.name}}</td>
       <td>${{r.price!==null? '¥'+r.price.toLocaleString() : '-'}}</td>
