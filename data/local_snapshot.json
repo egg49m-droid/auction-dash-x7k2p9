@@ -9767,12 +9767,12 @@
   "bid_count": 9,
   "has_bid": "あり",
   "end_datetime": "2026/07/16 00:18",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 9001,
   "listed_date": "2026/07/09",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "ADDRESS_INPUTING",
+  "trade_message": "落札者からの連絡待ちです"
  },
  {
   "auction_id": "c1236503227",
