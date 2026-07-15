@@ -8921,8 +8921,8 @@
   "final_price": 2200,
   "listed_date": "2026/07/06",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "b1236085884",
