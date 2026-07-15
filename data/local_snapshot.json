@@ -6320,8 +6320,8 @@
   "final_price": 3100,
   "listed_date": "2026/07/03",
   "source": "manual",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "b1235738340",
