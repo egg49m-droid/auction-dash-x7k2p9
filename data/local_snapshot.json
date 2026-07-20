@@ -9142,8 +9142,8 @@
   "final_price": 1901,
   "listed_date": "2026/07/06",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "t1236103657",
@@ -11114,8 +11114,8 @@
   "final_price": 6800,
   "listed_date": "2026/07/11",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "1236705833",
@@ -11199,8 +11199,8 @@
   "final_price": 7750,
   "listed_date": "2026/07/11",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "s1236721339",
@@ -11620,12 +11620,12 @@
   "bid_count": 2,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:42",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 1500,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "s1236810224",
@@ -11636,13 +11636,13 @@
   "current_price": 520,
   "bid_count": 5,
   "has_bid": "あり",
-  "end_datetime": "2026/07/19 22:53",
-  "status": "出品中",
-  "final_price": null,
+  "end_datetime": "2026/07/19 23:03",
+  "status": "終了",
+  "final_price": 2200,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "1236800402",
@@ -11654,12 +11654,12 @@
   "bid_count": 7,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:37",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 9138,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "o1236804466",
@@ -11670,13 +11670,13 @@
   "current_price": 500,
   "bid_count": 1,
   "has_bid": "あり",
-  "end_datetime": "2026/07/19 22:14",
-  "status": "出品中",
-  "final_price": null,
+  "end_datetime": "2026/07/19 22:39",
+  "status": "終了",
+  "final_price": 1700,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "n1236795135",
@@ -11688,12 +11688,12 @@
   "bid_count": 4,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:17",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 5999,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "ADDRESS_INPUTING",
+  "trade_message": "落札者からの連絡待ちです"
  },
  {
   "auction_id": "k1236796245",
@@ -11704,13 +11704,13 @@
   "current_price": 520,
   "bid_count": 3,
   "has_bid": "あり",
-  "end_datetime": "2026/07/19 22:36",
-  "status": "出品中",
-  "final_price": null,
+  "end_datetime": "2026/07/19 22:46",
+  "status": "終了",
+  "final_price": 3500,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "q1236794472",
@@ -11722,12 +11722,12 @@
   "bid_count": 16,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:19",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 26600,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "w1236812921",
@@ -11739,12 +11739,12 @@
   "bid_count": 1,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:40",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 32000,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "MONEY_RECEIVED",
+  "trade_message": "落札者からの入金待ちです"
  },
  {
   "auction_id": "q1236809577",
@@ -11756,12 +11756,12 @@
   "bid_count": 1,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:41",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 151000,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "MONEY_RECEIVED",
+  "trade_message": "落札者からの入金待ちです"
  },
  {
   "auction_id": "j1236816225",
@@ -11773,12 +11773,12 @@
   "bid_count": 1,
   "has_bid": "あり",
   "end_datetime": "2026/07/19 22:43",
-  "status": "出品中",
-  "final_price": null,
+  "status": "終了",
+  "final_price": 185000,
   "listed_date": "2026/07/12",
   "source": "auto",
-  "trade_progress": null,
-  "trade_message": null
+  "trade_progress": "MONEY_RECEIVED",
+  "trade_message": "落札者からの入金待ちです"
  },
  {
   "auction_id": "d1236811754",
