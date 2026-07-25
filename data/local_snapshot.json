@@ -13817,8 +13817,8 @@
   "final_price": 3810,
   "listed_date": "2026/07/14",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "c1237019113",
@@ -14514,8 +14514,8 @@
   "final_price": 4200,
   "listed_date": "2026/07/16",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "j1237287497",
