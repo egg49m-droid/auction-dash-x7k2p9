@@ -14633,8 +14633,8 @@
   "final_price": 500,
   "listed_date": "2026/07/16",
   "source": "auto",
-  "trade_progress": "MONEY_RECEIVED",
-  "trade_message": "落札者からの入金待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "w1237306366",
@@ -15823,8 +15823,8 @@
   "final_price": 2600,
   "listed_date": "2026/07/17",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "k1237449683",
@@ -15891,8 +15891,8 @@
   "final_price": 1300,
   "listed_date": "2026/07/17",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "f1237453666",
@@ -15959,8 +15959,8 @@
   "final_price": 690,
   "listed_date": "2026/07/17",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "r1237439989",
@@ -16010,8 +16010,8 @@
   "final_price": 4300,
   "listed_date": "2026/07/17",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "o1237423583",
@@ -16078,8 +16078,8 @@
   "final_price": 708,
   "listed_date": "2026/07/17",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "f1237440302",
@@ -16214,8 +16214,8 @@
   "final_price": 500,
   "listed_date": "2026/07/17",
   "source": "auto",
-  "trade_progress": "ADDRESS_INPUTING",
-  "trade_message": "落札者からの連絡待ちです"
+  "trade_progress": "PREPARATION_FOR_SHIPMENT",
+  "trade_message": "発送をしてください"
  },
  {
   "auction_id": "g1237448993",
