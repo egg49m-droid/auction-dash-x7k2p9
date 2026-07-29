@@ -17336,8 +17336,8 @@
   "final_price": 27500,
   "listed_date": "2026/07/19",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "v1237700854",
@@ -17353,8 +17353,8 @@
   "final_price": 4200,
   "listed_date": "2026/07/19",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "t1237682843",
@@ -18492,8 +18492,8 @@
   "final_price": 23055,
   "listed_date": "2026/07/20",
   "source": "auto",
-  "trade_progress": "SHIPPING",
-  "trade_message": "発送完了しました"
+  "trade_progress": "COMPLETE",
+  "trade_message": "受取連絡がされました"
  },
  {
   "auction_id": "d1237778801",
